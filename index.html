@@ -1,0 +1,774 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>건반 길잡이</title></head><body><title>건반 길잡이</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#ffffff; --ink:#1d1b17; --muted:#6d685e; --line:#d9d4ca;
+  --rh:#2b6fe0; --lh:#b8398a; --rh-next:#b9cff7; --lh-next:#efc3de; --ok:#3f9a5a; --bad:#cf4a3c; --next:#c4bdae;
+  --white-key:#fbfaf7; --black-key:#2a2723; --key-line:#b8b1a4; --pill:#ebe7de;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121317; --panel:#1c1e24; --ink:#ecebe6; --muted:#a19d94; --line:#31343c;
+  --rh:#4f8df5; --lh:#e05bb0; --rh-next:#2c4470; --lh-next:#6a2f57; --ok:#5ec27a; --bad:#e56a5c; --next:#4d505a;
+  --white-key:#e6e4de; --black-key:#0d0e11; --key-line:#8c887e; --pill:#2a2d35;
+}}
+:root[data-theme="dark"]{
+  --bg:#121317; --panel:#1c1e24; --ink:#ecebe6; --muted:#a19d94; --line:#31343c;
+  --rh:#4f8df5; --lh:#e05bb0; --rh-next:#2c4470; --lh-next:#6a2f57; --ok:#5ec27a; --bad:#e56a5c; --next:#4d505a;
+  --white-key:#e6e4de; --black-key:#0d0e11; --key-line:#8c887e; --pill:#2a2d35;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:14px;overflow-x:hidden;overflow-y:auto;-webkit-tap-highlight-color:transparent}
+.app{min-height:100%;box-sizing:border-box;grid-template-columns:minmax(0,1fr);padding:6px 16px calc(12px + env(safe-area-inset-bottom,0px));display:grid;grid-template-rows:auto auto auto auto auto auto;align-content:start;gap:6px}
+/* header */
+.app>*{min-width:0}
+.score-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:2px 8px;overflow:hidden}
+.score-wrap svg{width:100%;height:132px;display:block}
+.score-wrap .mus{font-family:"Noto Music","Noto Sans KR",serif}
+@media (min-width:900px) and (min-height:600px){ .score-wrap svg{height:168px} .score-wrap{border-radius:12px} }
+.hd{display:flex;align-items:center;gap:8px;min-height:28px;min-width:0}
+.hd h1{font-size:15px;margin:0;font-weight:700;white-space:nowrap}
+.hd .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;background:var(--pill);border:0;border-radius:999px;padding:4px 9px;font:inherit;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--bad);flex:none}
+.pill.on .dot{background:var(--ok)}
+.pill.on{color:var(--ink)}
+/* controls */
+.ctl{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.ctl::-webkit-scrollbar{display:none}
+.ctl>*{flex:none}
+select,input[type=number],button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:0 10px;height:36px;line-height:1;box-sizing:border-box;-moz-appearance:textfield}
+input[type=number]{width:52px;font-family:"JetBrains Mono",monospace;text-align:center;padding:0 4px;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+button{cursor:pointer}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--rh);outline-offset:1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-radius:0;background:transparent;padding:0 10px;height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.range{display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:12px}
+/* keyboards */
+.kb-wrap{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 6px 6px;display:flex;flex-direction:column;min-height:0}
+.kb-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);letter-spacing:.04em;padding:0 2px 3px;flex:none}
+.kb-head b{font-weight:700;color:var(--muted)}
+.legend{display:flex;gap:9px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:3px}
+svg.kb{width:100%;height:clamp(130px,34vh,300px);flex:none;display:block;touch-action:none;user-select:none}
+/* status */
+.status{--row:30px;--posw:118px;--notesw:210px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
+.pos{flex:none;width:var(--posw);box-sizing:border-box;height:var(--row);font-family:"JetBrains Mono",monospace;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:var(--row);display:flex;align-items:baseline;gap:6px;padding-right:10px;border-right:1px solid var(--line)}
+.pos small{font-size:11px;color:var(--muted);font-family:"Noto Sans KR",sans-serif;font-weight:400}
+.notes{flex:none;min-width:var(--notesw);display:flex;gap:6px;align-items:center;min-height:var(--row)}
+.chip{box-sizing:border-box;height:var(--row);display:inline-flex;align-items:center;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14px;padding:0 9px;border-radius:6px;color:#fff;line-height:1}
+.chip.rh{background:var(--rh)} .chip.lh{background:var(--lh)} .chip.dim{opacity:.35}
+.chip .fb{display:inline-block;margin-left:6px;background:rgba(255,255,255,.92);color:#1d1b17;border-radius:4px;padding:0 5px;font-size:.85em;line-height:1.35}
+.kb-title{display:inline-flex;align-items:center;gap:10px}
+.pedal-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0;background:var(--pill);color:var(--muted);border:1px solid var(--line)}
+.pedal-badge.down,.pedal-badge.change{background:var(--ok);color:#fff;border-color:var(--ok)}
+.pedal-badge.up{background:var(--bad);color:#fff;border-color:var(--bad)}
+.pedal-badge.hold{opacity:.8}
+@media (min-width:900px) and (min-height:600px){ .pedal-badge{font-size:14px;padding:4px 12px} .pedal-badge svg{width:18px;height:18px} }
+.chip.pedal{background:var(--pill);color:var(--muted);font-family:"Noto Sans KR",sans-serif;font-weight:700;font-size:12px;border:1px solid var(--line)}
+.chip.pedal.down,.chip.pedal.change{background:var(--ok);color:#fff;border-color:var(--ok)}
+.chip.pedal.up{background:var(--bad);color:#fff;border-color:var(--bad)}
+.pedal-live{display:inline-flex;align-items:center;gap:4px} .pedal-live i{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block} .pedal-live.on i{background:var(--ok)}
+.chip.rest{background:var(--pill);color:var(--muted);font-family:"Noto Sans KR",sans-serif;font-weight:500;font-size:12px}
+.msg{flex:1;min-width:0;height:var(--row);line-height:var(--row);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg.bad{color:var(--bad);font-weight:500} .msg.ok{color:var(--ok);font-weight:500}
+.stats{font-size:11px;color:var(--muted);display:flex;gap:10px;white-space:nowrap;overflow:hidden}
+.stats b{color:var(--ink);font-family:"JetBrains Mono",monospace}
+/* sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.show{display:flex}
+.sheet .panel{background:var(--panel);color:var(--ink);width:min(560px,100%);max-height:85%;overflow:auto;border-radius:14px 14px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
+.sheet h2{font-size:14px;margin:0 0 2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row label{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.help{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
+.stats-full{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:12px;color:var(--muted)}
+.stats-full b{display:block;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:18px}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:7px 13px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.toast.show{opacity:1}
+/* portrait phone */
+@media (orientation:portrait){
+  .hd .sub{display:none}
+  svg.kb{height:44vw}
+  .status{flex-wrap:wrap}
+  .msg{flex-basis:100%}
+}
+/* tablet and desktop */
+@media (min-width:900px) and (min-height:600px){
+  body{font-size:16px}
+  .app{padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));gap:10px}
+  .hd h1{font-size:19px} .hd .sub{font-size:14px} .pill{font-size:13px;padding:6px 12px}
+  select,input[type=number],button{height:42px;padding:0 14px;border-radius:9px}
+  .seg button{height:40px;padding:0 14px} input[type=number]{width:60px;padding:0 4px} .range{font-size:14px}
+  .kb-wrap{padding:8px 10px 10px;border-radius:12px} .kb-head{font-size:13px;padding-bottom:6px} .legend{gap:12px} .legend i{width:11px;height:11px}
+  svg.kb{height:clamp(170px,30vh,400px)}
+  .status{padding:10px 18px;column-gap:18px;border-radius:12px} .pos{font-size:34px} .pos small{font-size:13px}
+  .status{--row:36px;--posw:150px;--notesw:300px;padding:8px 16px;gap:14px} .pos{font-size:28px} .chip{font-size:17px;padding:0 12px} .chip.rest,.chip.pedal{font-size:13px} .msg{font-size:14px} .stats{font-size:13px;gap:14px}
+}
+@media (min-width:900px) and (min-height:600px) and (orientation:portrait){ .hd .sub{display:inline} .status{flex-wrap:nowrap} .msg{flex-basis:auto} }
+@media (min-width:1300px) and (min-height:700px){ .app{max-width:1500px;margin:0 auto} svg.kb{height:clamp(200px,31vh,440px)} }
+@media (prefers-reduced-motion:no-preference){ .key{transition:fill .06s} }
+</style>
+
+<div class="app">
+  <div class="hd">
+    <h1>건반 길잡이</h1>
+    <span class="sub" id="songSub"></span>
+    <button class="pill" id="midiPill" type="button"><span class="dot"></span><span id="midiText">피아노 연결</span></button>
+    <button class="pill" id="menuBtn" type="button" aria-label="설정">⋯ 설정</button>
+  </div>
+
+  <div class="ctl">
+    <select id="songSel" aria-label="곡"></select>
+    <span class="range">마디 <input type="number" id="barFrom" min="1" value="1" aria-label="시작 마디"> ~ <input type="number" id="barTo" min="1" value="1" aria-label="끝 마디"></span>
+    <span class="seg" id="handSeg" role="group" aria-label="손">
+      <button type="button" data-hand="both" aria-pressed="true">양손</button>
+      <button type="button" data-hand="lh" aria-pressed="false">왼손</button>
+      <button type="button" data-hand="rh" aria-pressed="false">오른손</button>
+    </span>
+    <button type="button" id="prevBtn" aria-label="이전 음">◀</button>
+    <button type="button" id="nextBtn" aria-label="다음 음">▶</button>
+    <button type="button" id="listenBtn">♪ 이 음</button>
+    <button type="button" id="playBtn">▶ 전체</button>
+    <button type="button" id="rangeBtn" aria-pressed="false">88</button>
+  </div>
+
+  <div class="score-wrap" id="scoreWrap">
+    <svg id="score" viewBox="0 0 1000 206" aria-label="악보"></svg>
+  </div>
+
+  <div class="kb-wrap">
+    <div class="kb-head"><span class="kb-title"><b>쳐야 할 건반</b><span class="pedal-badge" id="pedalBadge" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 3h6l3 9v9H7z" fill="currentColor" opacity=".9"/><path d="M4 21h16" stroke="currentColor" stroke-width="2"/></svg><span id="pedalText"></span></span></span>
+      <span class="legend"><span><i style="background:var(--lh)"></i>왼손</span><span><i style="background:var(--lh-next)"></i>왼손 다음</span><span><i style="background:var(--rh)"></i>오른손</span><span><i style="background:var(--rh-next)"></i>오른손 다음</span></span></div>
+    <svg class="kb" id="kbTop" viewBox="0 0 1248 150" preserveAspectRatio="none" aria-label="쳐야 할 건반"></svg>
+  </div>
+
+  <div class="status">
+    <div class="pos"><span id="posBar">–</span><small id="posSub">마디</small></div>
+    <div class="notes" id="noteChips"></div>
+    <div class="msg" id="msg">피아노를 USB로 연결하고 위의 「피아노 연결」을 누르세요. 연결 전에는 아래 건반을 눌러 시험할 수 있어요.</div>
+  </div>
+
+  <div class="kb-wrap">
+    <div class="kb-head"><b>누른 건반</b>
+      <span class="stats"><span class="pedal-live" id="pedalLive"><i></i>페달</span><span>진행 <b id="stProg">0/0</b></span><span>맞음 <b id="stOk">0</b></span><span>틀림 <b id="stBad">0</b></span><span>시차 <b id="stGap">–</b></span></span></div>
+    <svg class="kb" id="kbBot" viewBox="0 0 1248 150" preserveAspectRatio="none" aria-label="누른 건반"></svg>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <h2>설정</h2>
+    <div class="row">
+      <label><input type="checkbox" id="loopChk" checked> 구간 반복</label>
+      <label><input type="checkbox" id="strictChk"> 틀리면 그 음부터 다시</label>
+      <label><input type="checkbox" id="wakeChk" checked> 화면 꺼짐 방지</label>
+      <label><input type="checkbox" id="fingerChk" checked> 손가락 번호 표시</label>
+      <label><input type="checkbox" id="pedalChk" checked> 페달 표시</label>
+      <label><input type="checkbox" id="scoreChk" checked> 악보 표시</label>
+      <label><input type="checkbox" id="sameChk" checked> 번호 수정 시 같은 마디의 같은 음도 함께</label>
+    </div>
+    <div class="row">
+      <button type="button" id="restartBtn">처음부터 (기록 초기화)</button>
+      <button type="button" id="fsBtn">전체 화면</button>
+      <button type="button" id="midiBtn2" class="primary">피아노 연결</button>
+      <button type="button" id="copyBtn">앱 링크 복사</button>
+      <button type="button" id="standaloneBtn">단독 주소 보기 (MIDI용)</button>
+    </div>
+    <div class="stats-full">
+      <span>진행<b id="fProg">0 / 0</b></span><span>맞음<b id="fOk">0</b></span><span>틀림<b id="fBad">0</b></span>
+      <span>양손 시차 평균<b id="fGap">–</b></span><span>확인 표시<b id="fMarks">0</b></span><span>저장소<b id="dbText" style="font-size:12px;font-family:inherit">확인 중</b></span>
+    </div>
+    <div id="standaloneBox" hidden style="display:flex;flex-direction:column;gap:6px">
+      <p class="help" style="margin:0">아래 주소가 이 앱의 단독 주소입니다. 복사한 뒤 Chrome 새 탭의 주소창에 붙여 넣어 여세요. 그 탭에서 「피아노 연결」을 누르면 MIDI 권한을 물어봅니다.</p>
+      <input type="text" id="standaloneUrl" readonly style="width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;font-size:12px;height:36px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+      <div class="row"><button type="button" id="copyStandalone">단독 주소 복사</button><button type="button" id="selectStandalone">주소 전체 선택</button></div>
+    </div>
+    <pre class="help" id="diagText" style="white-space:pre-wrap;margin:0;font-family:'JetBrains Mono',monospace;font-size:11px"></pre>
+    <p class="help" id="modeNote"></p>
+    <p class="help" id="pedalNote"></p>
+    <p class="help">위 건반에 표시된 음을 정확히 누르면 다음 음으로 넘어갑니다. 화음은 표시된 건반을 모두 누르면 넘어갑니다.
+    건반 위 숫자는 손가락 번호(1 엄지 ~ 5 새끼)입니다. 「쳐야 할 건반」 제목 옆의 페달 표시는 그 음을 칠 때 페달을 밟기·유지·바꾸기(떼었다 바로 다시 밟기)·떼기 중 무엇을 할지 알려주며, 아래 「페달」 점은 P-225 페달을 실제로 밟고 있는지를 보여줍니다. 위 건반의 음을 짧게 누르면 번호가 1→5로 바뀌고 저장됩니다. 길게 누르면 「이 음 확인 필요」로 표시되어 다음 변환 검토 때 원본 악보와 대조합니다.
+    시차는 두 손이 함께 쳐야 하는 자리에서 오른손이 왼손보다 얼마나 늦게(+) 또는 빨리(−) 눌렸는지의 평균(ms)입니다.
+    「88」을 누르면 전체 건반과 연습 구간 음역 보기가 바뀝니다. 가로 모드에서 보시는 것을 권합니다.</p>
+    <button type="button" id="closeSheet">닫기</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script id="builtinSongs" type="application/json">[{"id":"passacaglia","title":"Passacaglia","subtitle":"Handel / Halvorsen 편곡 (피아노)","tempo":130,"beats_per_bar":4,"unit":"eighth","source":"MuseScore PDF 인식, 2026-09-17","bars":[{"bar":1,"events":[{"t":0,"rh":[],"lh":[45],"lh_dur":1,"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":2,"events":[{"t":0,"rh":[],"lh":[45],"lh_dur":1,"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":3,"events":[{"t":0,"rh":[72],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[83],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[81],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[79],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":4,"events":[{"t":0,"rh":[77],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[84],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[76],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[74],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":5,"events":[{"t":0,"rh":[71],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[81],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[79],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[77],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":6,"events":[{"t":0,"rh":[76],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":1,"rh":[83],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[74],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":7,"events":[{"t":0,"rh":[69],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[79],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[77],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[76],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":8,"events":[{"t":0,"rh":[74],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[81],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":2,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[4]},{"t":4,"rh":[71],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":9,"events":[{"t":0,"rh":[81],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[80],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[78],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]},{"t":4,"rh":[80],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[81],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":10,"events":[{"t":0,"rh":[81],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":11,"events":[{"t":0,"rh":[84],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[74],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[76],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[77],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":12,"events":[{"t":0,"rh":[79],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":1,"rh":[72],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[2]},{"t":3,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[83],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":13,"events":[{"t":0,"rh":[83],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":1,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[72],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[74],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[76],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":14,"events":[{"t":0,"rh":[77],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[71],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[79],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[81],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":15,"events":[{"t":0,"rh":[81],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":1,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[71],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[72],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[74],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":16,"events":[{"t":0,"rh":[76],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[69],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[77],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[79],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":17,"events":[{"t":0,"rh":[81],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[80],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[78],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[80],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[2],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[81],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]}]},{"bar":18,"events":[{"t":0,"rh":[81],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":19,"events":[{"t":0,"rh":[84],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[96],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[95],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[96],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[93],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[96],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[91],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[96],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":20,"events":[{"t":0,"rh":[89],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[96],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[88],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[96],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[86],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[96],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[96],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":21,"events":[{"t":0,"rh":[83],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[95],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[93],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[91],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[89],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":22,"events":[{"t":0,"rh":[88],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":1,"rh":[95],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[86],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[95],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[95],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[95],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":23,"events":[{"t":0,"rh":[81],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[93],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[91],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[89],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[88],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":24,"events":[{"t":0,"rh":[86],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[93],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":2,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[93],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[4]},{"t":4,"rh":[83],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[93],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[93],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":25,"events":[{"t":0,"rh":[93],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[92],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[90],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]},{"t":4,"rh":[92],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[93],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":26,"events":[{"t":0,"rh":[93],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":27,"events":[{"t":0,"rh":[96],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[86],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[88],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[89],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":28,"events":[{"t":0,"rh":[91],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[84],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[95],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[96],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":29,"events":[{"t":0,"rh":[95],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[84],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[86],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[88],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":30,"events":[{"t":0,"rh":[89],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[83],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[91],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[93],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[95],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":31,"events":[{"t":0,"rh":[93],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":1,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[83],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[84],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[86],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":32,"events":[{"t":0,"rh":[88],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[81],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[89],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[91],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":33,"events":[{"t":0,"rh":[93],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[92],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[90],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]},{"t":4,"rh":[92],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[93],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":34,"events":[{"t":0,"rh":[93],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":35,"events":[{"t":0,"rh":[72],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[84],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[83],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[81],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":36,"events":[{"t":0,"rh":[79],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[72],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":2,"rh":[77],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[4]},{"t":4,"rh":[76],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[4]},{"t":6,"rh":[74],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[4]}]},{"bar":37,"events":[{"t":0,"rh":[71],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[83],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[81],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[79],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":38,"events":[{"t":0,"rh":[77],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":1,"rh":[71],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":2,"rh":[76],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[3]},{"t":4,"rh":[74],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[3]},{"t":6,"rh":[72],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[3]}]},{"bar":39,"events":[{"t":0,"rh":[69],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[81],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[79],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[77],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":40,"events":[{"t":0,"rh":[76],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[69],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[74],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[72],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[4]},{"t":6,"rh":[71],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[4]}]},{"bar":41,"events":[{"t":0,"rh":[69],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[68],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[66],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[68],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[2],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[69],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]}]},{"bar":42,"events":[{"t":0,"rh":[69],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":43,"events":[{"t":0,"rh":[84],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[96],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[83],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[95],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[81],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[93],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[79],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[91],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":44,"events":[{"t":0,"rh":[77],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[89],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[76],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[88],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[74],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[86],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[4]}]},{"bar":45,"events":[{"t":0,"rh":[83],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[95],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[81],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[93],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[79],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[91],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[77],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[89],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":46,"events":[{"t":0,"rh":[76],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[88],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[74],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[86],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[84],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":47,"events":[{"t":0,"rh":[69],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":2,"rh":[67],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":3,"rh":[79],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[65],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[77],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":6,"rh":[64],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":7,"rh":[76],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]}]},{"bar":48,"events":[{"t":0,"rh":[62],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[74],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":2,"rh":[60],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":3,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":4,"rh":[59],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[71],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":6,"rh":[57],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":7,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[2]}]},{"bar":49,"events":[{"t":0,"rh":[69],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[68],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[66],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[68],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[2],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[69],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]}]},{"bar":50,"events":[{"t":0,"rh":[69],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":51,"events":[{"t":0,"rh":[72],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[83],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[81],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[79],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[84],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":52,"events":[{"t":0,"rh":[77],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[84],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[76],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":4,"rh":[74],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[84],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":53,"events":[{"t":0,"rh":[71],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[81],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[79],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[77],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":54,"events":[{"t":0,"rh":[76],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[5]},{"t":1,"rh":[83],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[74],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[83],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":55,"events":[{"t":0,"rh":[69],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":2,"rh":[79],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":4,"rh":[77],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]},{"t":6,"rh":[76],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":56,"events":[{"t":0,"rh":[74],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":1,"rh":[81],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":2,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":3,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[4]},{"t":4,"rh":[71],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[1]},{"t":5,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]},{"t":6,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[81],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[4]}]},{"bar":57,"events":[{"t":0,"rh":[81],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[80],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[78],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]},{"t":4,"rh":[80],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[81],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":58,"events":[{"t":0,"rh":[81],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":59,"events":[{"t":0,"rh":[84],"lh":[45],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[72],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[74],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[76],"lh":[69],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[77],"lh":[64],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[72],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":60,"events":[{"t":0,"rh":[79],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[72],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[83],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[84],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[72],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":61,"events":[{"t":0,"rh":[83],"lh":[43],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[71],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[72],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[74],"lh":[67],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[76],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":62,"events":[{"t":0,"rh":[77],"lh":[36],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[71],"lh":[48],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[79],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[81],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[83],"lh":[55],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[71],"lh":[52],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":63,"events":[{"t":0,"rh":[81],"lh":[41],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[5]},{"t":1,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[71],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":4,"rh":[72],"lh":[65],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[1]},{"t":5,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]},{"t":6,"rh":[74],"lh":[60],"rh_dur":1,"lh_dur":1,"rh_f":[2],"lh_f":[2]},{"t":7,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[3]}]},{"bar":64,"events":[{"t":0,"rh":[76],"lh":[38],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[5]},{"t":1,"rh":[69],"lh":[50],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[5]},{"t":2,"rh":[77],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":4,"rh":[79],"lh":[62],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[1]},{"t":5,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]},{"t":6,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[2]},{"t":7,"rh":[69],"lh":[53],"rh_dur":1,"lh_dur":1,"rh_f":[1],"lh_f":[4]}]},{"bar":65,"events":[{"t":0,"rh":[81],"lh":[40],"rh_dur":2,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[52],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[80],"lh":[59],"rh_dur":1,"lh_dur":1,"rh_f":[4],"lh_f":[2]},{"t":3,"rh":[78],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[3],"lh_f":[3]},{"t":4,"rh":[80],"lh":[64],"rh_dur":3,"lh_dur":1,"rh_f":[4],"lh_f":[1]},{"t":5,"rh":[],"lh":[56],"lh_dur":1,"lh_f":[3]},{"t":6,"rh":[],"lh":[59],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[81],"lh":[56],"rh_dur":1,"lh_dur":1,"rh_f":[5],"lh_f":[3]}]},{"bar":66,"events":[{"t":0,"rh":[81],"lh":[45],"rh_dur":8,"lh_dur":1,"rh_f":[5],"lh_f":[5]},{"t":1,"rh":[],"lh":[57],"lh_dur":1,"lh_f":[5]},{"t":2,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":3,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":4,"rh":[],"lh":[69],"lh_dur":1,"lh_f":[1]},{"t":5,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]},{"t":6,"rh":[],"lh":[64],"lh_dur":1,"lh_f":[2]},{"t":7,"rh":[],"lh":[60],"lh_dur":1,"lh_f":[4]}]},{"bar":67,"events":[{"t":0,"rh":[72],"lh":[45,57],"rh_dur":1,"lh_dur":8,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":2,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":3,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":4,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":5,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[79],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":7,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":68,"events":[{"t":0,"rh":[77],"lh":[38,50],"rh_dur":1,"lh_dur":8,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":2,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":3,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":4,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":5,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":7,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":69,"events":[{"t":0,"rh":[71],"lh":[43,55],"rh_dur":1,"lh_dur":8,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":2,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":4,"rh":[79],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[77],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":7,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":70,"events":[{"t":0,"rh":[76],"lh":[36,48],"rh_dur":1,"lh_dur":8,"rh_f":[2],"lh_f":[5,1]},{"t":1,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":2,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":4,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":7,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":71,"events":[{"t":0,"rh":[69],"lh":[41,53],"rh_dur":1,"lh_dur":8,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":2,"rh":[79],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":3,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":4,"rh":[77],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":5,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":7,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":72,"events":[{"t":0,"rh":[74],"lh":[38,50],"rh_dur":1,"lh_dur":8,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":2,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":3,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":4,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":5,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":7,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":73,"events":[{"t":0,"rh":[81],"lh":[40,52],"rh_dur":2,"lh_dur":8,"rh_f":[5],"lh_f":[5,1]},{"t":2,"rh":[80],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":3,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":4,"rh":[80],"lh":[],"rh_dur":3,"rh_f":[4]},{"t":7,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":74,"events":[{"t":0,"rh":[81],"lh":[45,57],"rh_dur":8,"lh_dur":8,"rh_f":[5],"lh_f":[5,1]}]}],"pedal":[{"bar":1,"t":0,"dur":8},{"bar":2,"t":0,"dur":8},{"bar":3,"t":0,"dur":8},{"bar":4,"t":0,"dur":8},{"bar":5,"t":0,"dur":8},{"bar":6,"t":0,"dur":8},{"bar":7,"t":0,"dur":8},{"bar":8,"t":0,"dur":8},{"bar":9,"t":0,"dur":8},{"bar":10,"t":0,"dur":8},{"bar":11,"t":0,"dur":8},{"bar":12,"t":0,"dur":8},{"bar":13,"t":0,"dur":8},{"bar":14,"t":0,"dur":8},{"bar":15,"t":0,"dur":8},{"bar":16,"t":0,"dur":8},{"bar":17,"t":0,"dur":8},{"bar":18,"t":0,"dur":8},{"bar":19,"t":0,"dur":8},{"bar":20,"t":0,"dur":8},{"bar":21,"t":0,"dur":8},{"bar":22,"t":0,"dur":8},{"bar":23,"t":0,"dur":8},{"bar":24,"t":0,"dur":8},{"bar":25,"t":0,"dur":8},{"bar":26,"t":0,"dur":8},{"bar":27,"t":0,"dur":8},{"bar":28,"t":0,"dur":8},{"bar":29,"t":0,"dur":8},{"bar":30,"t":0,"dur":8},{"bar":31,"t":0,"dur":8},{"bar":32,"t":0,"dur":8},{"bar":33,"t":0,"dur":8},{"bar":34,"t":0,"dur":8},{"bar":35,"t":0,"dur":8},{"bar":36,"t":0,"dur":8},{"bar":37,"t":0,"dur":8},{"bar":38,"t":0,"dur":8},{"bar":39,"t":0,"dur":8},{"bar":40,"t":0,"dur":8},{"bar":41,"t":0,"dur":8},{"bar":42,"t":0,"dur":8},{"bar":43,"t":0,"dur":8},{"bar":44,"t":0,"dur":8},{"bar":45,"t":0,"dur":8},{"bar":46,"t":0,"dur":8},{"bar":47,"t":0,"dur":8},{"bar":48,"t":0,"dur":8},{"bar":49,"t":0,"dur":8},{"bar":50,"t":0,"dur":8},{"bar":51,"t":0,"dur":8},{"bar":52,"t":0,"dur":8},{"bar":53,"t":0,"dur":8},{"bar":54,"t":0,"dur":8},{"bar":55,"t":0,"dur":8},{"bar":56,"t":0,"dur":8},{"bar":57,"t":0,"dur":8},{"bar":58,"t":0,"dur":8},{"bar":59,"t":0,"dur":8},{"bar":60,"t":0,"dur":8},{"bar":61,"t":0,"dur":8},{"bar":62,"t":0,"dur":8},{"bar":63,"t":0,"dur":8},{"bar":64,"t":0,"dur":8},{"bar":65,"t":0,"dur":8},{"bar":66,"t":0,"dur":8},{"bar":67,"t":0,"dur":8},{"bar":68,"t":0,"dur":8},{"bar":69,"t":0,"dur":8},{"bar":70,"t":0,"dur":8},{"bar":71,"t":0,"dur":8},{"bar":72,"t":0,"dur":8},{"bar":73,"t":0,"dur":8},{"bar":74,"t":0,"dur":8}],"pedal_note":"악보 지시: with pedal throughout — 마디(화성)마다 갈아 밟기","key_sharps":0},{"id":"comptine","title":"Comptine d'un autre été","subtitle":"Yann Tiersen (Amélie) · M. Jordan 편곡","tempo":100,"beats_per_bar":4,"unit":"sixteenth","source":"Sheetmusic-free PDF 인식, 2026-09-17","bars":[{"bar":1,"events":[{"t":0,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":2,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":3,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":4,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":5,"events":[{"t":0,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[67],"lh":[55,64],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":8,"rh":[71],"lh":[52,64],"rh_dur":8,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":6,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[67],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":4,"rh":[66],"lh":[55,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":8,"rh":[67],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[3],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":7,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[64],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[66],"lh":[54,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[71],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":8,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[64],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[66],"lh":[54,62],"rh_dur":12,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":9,"events":[{"t":0,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":3,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":4,"rh":[67],"lh":[55,64],"rh_dur":2,"lh_dur":2,"rh_f":[3],"lh_f":[4,1]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[71],"lh":[52,64],"rh_dur":8,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":10,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[67],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":4,"rh":[66],"lh":[55,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":8,"rh":[67],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[3],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":11,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[64],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[66],"lh":[54,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[72],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[71],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":12,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[66],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[64],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[66],"lh":[54,62],"rh_dur":12,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":13,"events":[{"t":0,"rh":[76],"lh":[48,60],"rh_dur":6,"lh_dur":2,"rh_f":[3],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[52,60],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[71],"lh":[55],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[48,60],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[52,60],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]}]},{"bar":14,"events":[{"t":0,"rh":[74],"lh":[47,59],"rh_dur":6,"lh_dur":2,"rh_f":[2],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[52,59],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[71],"lh":[55],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[47,59],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[52,59],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]}]},{"bar":15,"events":[{"t":0,"rh":[78],"lh":[47,59],"rh_dur":6,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[50,59],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[71],"lh":[55],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[47,59],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[50,59],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]}]},{"bar":16,"events":[{"t":0,"rh":[78],"lh":[47,59],"rh_dur":6,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[54],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[50,59],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[69],"lh":[54],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[47,59],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[54],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[50,59],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[54],"lh_dur":2,"lh_f":[2]}]},{"bar":17,"events":[{"t":0,"rh":[71,79],"lh":[48,60],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[52,60],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[67,76],"lh":[55],"rh_dur":10,"lh_dur":2,"rh_f":[1,4],"lh_f":[2]},{"t":8,"rh":[],"lh":[48,60],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[52,60],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[55],"lh_dur":2,"lh_f":[2]}]},{"bar":18,"events":[{"t":0,"rh":[71,79],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[67,74],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1,3],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":19,"events":[{"t":0,"rh":[71,78],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[66,74],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1,3],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":20,"events":[{"t":0,"rh":[69,78],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[1,4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[66,74],"lh":[57],"rh_dur":10,"lh_dur":2,"rh_f":[1,4],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":21,"events":[{"t":0,"rh":[71],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[76],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[83],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[76],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[71],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[72],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":22,"events":[{"t":0,"rh":[71],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[83],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[71],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[3,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[69],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":23,"events":[{"t":0,"rh":[66],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":2,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[4,1]},{"t":5,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":8,"rh":[78],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":11,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[66],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":15,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":24,"events":[{"t":0,"rh":[69],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[81],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[69],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[67],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":25,"events":[{"t":0,"rh":[71],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[76],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[83],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[76],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[71],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[72],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":26,"events":[{"t":0,"rh":[71],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[71],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[83],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[71],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[71],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[3,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[69],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[3]}]},{"bar":27,"events":[{"t":0,"rh":[66],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":2,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[4,1]},{"t":5,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[66],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":8,"rh":[78],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[66],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":11,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[66],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[67],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":15,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":28,"events":[{"t":0,"rh":[69],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[74],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[69],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[81],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[69],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[74],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[69],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[3,1]},{"t":13,"rh":[74],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[81],"lh":[57],"rh_dur":2,"lh_dur":2,"rh_f":[5],"lh_f":[2]}]},{"bar":29,"events":[{"t":0,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[79],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[79],"lh":[55,64],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[4],"lh_f":[2]},{"t":7,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":8,"rh":[83],"lh":[52,64],"rh_dur":8,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":30,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[79],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":4,"rh":[78],"lh":[55,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[79],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":7,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[4]},{"t":8,"rh":[79],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[3],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":31,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[78],"lh":[54,62],"rh_dur":2,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[84],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[83],"lh":[50,62],"rh_dur":8,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":32,"events":[{"t":0,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":2,"rh":[78],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":3,"rh":[76],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[78],"lh":[54,62],"rh_dur":12,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":6,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":33,"events":[{"t":0,"rh":[88],"lh":[52,64],"rh_dur":6,"lh_dur":2,"rh_f":[3],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[83],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":34,"events":[{"t":0,"rh":[86],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[2],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[83],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":35,"events":[{"t":0,"rh":[90],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[83],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":36,"events":[{"t":0,"rh":[90],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[81],"lh":[57],"rh_dur":10,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":37,"events":[{"t":0,"rh":[83,91],"lh":[52,64],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[79,88],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1,4],"lh_f":[2]},{"t":8,"rh":[],"lh":[52,64],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,64],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":38,"events":[{"t":0,"rh":[83,91],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[79,86],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1,3],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[55,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":39,"events":[{"t":0,"rh":[83,90],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[2,5],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":6,"rh":[78,86],"lh":[59],"rh_dur":10,"lh_dur":2,"rh_f":[1,3],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[4,1]},{"t":14,"rh":[],"lh":[59],"lh_dur":2,"lh_f":[2]}]},{"bar":40,"events":[{"t":0,"rh":[81,90],"lh":[50,62],"rh_dur":6,"lh_dur":2,"rh_f":[1,4],"lh_f":[5,1]},{"t":2,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":4,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":6,"rh":[78,86],"lh":[57],"rh_dur":10,"lh_dur":2,"rh_f":[1,4],"lh_f":[2]},{"t":8,"rh":[],"lh":[50,62],"lh_dur":2,"lh_f":[5,1]},{"t":10,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]},{"t":12,"rh":[],"lh":[54,62],"lh_dur":2,"lh_f":[3,1]},{"t":14,"rh":[],"lh":[57],"lh_dur":2,"lh_f":[2]}]},{"bar":41,"events":[{"t":0,"rh":[83],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[88],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":5,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[95],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[88],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[83],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[84],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":42,"events":[{"t":0,"rh":[83],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[95],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[83],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[3,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[81],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":43,"events":[{"t":0,"rh":[78],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":2,"rh":[90],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[4,1]},{"t":5,"rh":[90],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":8,"rh":[90],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":11,"rh":[90],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[78],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[79],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":15,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":44,"events":[{"t":0,"rh":[81],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[93],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[93],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[93],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[81],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[79],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":45,"events":[{"t":0,"rh":[83],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[88],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[4,1]},{"t":5,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[95],"lh":[52,64],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[88],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[83],"lh":[55,64],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[84],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[88],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":46,"events":[{"t":0,"rh":[83],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[95],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[83],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[95],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[83],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[95],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[83],"lh":[55,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[3,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[81],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":15,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]}]},{"bar":47,"events":[{"t":0,"rh":[78],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":2,"rh":[90],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[4,1]},{"t":5,"rh":[90],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[78],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[3]},{"t":8,"rh":[90],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[78],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[3],"lh_f":[2]},{"t":11,"rh":[90],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[78],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[4,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":14,"rh":[79],"lh":[59],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":15,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[5]}]},{"bar":48,"events":[{"t":0,"rh":[81],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[5,1]},{"t":1,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":2,"rh":[93],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[2]},{"t":3,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":4,"rh":[86],"lh":[54,62],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[3,1]},{"t":5,"rh":[93],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":6,"rh":[81],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[1],"lh_f":[2]},{"t":7,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":8,"rh":[93],"lh":[50,62],"rh_dur":1,"lh_dur":2,"rh_f":[5],"lh_f":[5,1]},{"t":9,"rh":[81],"lh":[],"rh_dur":1,"rh_f":[1]},{"t":10,"rh":[86],"lh":[57],"rh_dur":1,"lh_dur":2,"rh_f":[2],"lh_f":[2]},{"t":11,"rh":[93],"lh":[],"rh_dur":1,"rh_f":[5]},{"t":12,"rh":[81],"lh":[54,57,62],"rh_dur":1,"lh_dur":4,"rh_f":[1],"lh_f":[3,2,1]},{"t":13,"rh":[86],"lh":[],"rh_dur":1,"rh_f":[2]},{"t":14,"rh":[93],"lh":[],"rh_dur":2,"rh_f":[5]}]},{"bar":49,"events":[{"t":0,"rh":[91],"lh":[],"rh_dur":2,"rh_f":[5]},{"t":2,"rh":[79,88],"lh":[52,59],"rh_dur":14,"lh_dur":14,"rh_f":[1,4],"lh_f":[3,1]}]}],"pedal":[{"bar":1,"t":0,"dur":8},{"bar":1,"t":8,"dur":8},{"bar":2,"t":0,"dur":8},{"bar":2,"t":8,"dur":8},{"bar":3,"t":0,"dur":8},{"bar":3,"t":8,"dur":8},{"bar":4,"t":0,"dur":8},{"bar":4,"t":8,"dur":8},{"bar":5,"t":0,"dur":8},{"bar":5,"t":8,"dur":8},{"bar":6,"t":0,"dur":8},{"bar":6,"t":8,"dur":8},{"bar":7,"t":0,"dur":8},{"bar":7,"t":8,"dur":8},{"bar":8,"t":0,"dur":8},{"bar":8,"t":8,"dur":8},{"bar":9,"t":0,"dur":8},{"bar":9,"t":8,"dur":8},{"bar":10,"t":0,"dur":8},{"bar":10,"t":8,"dur":8},{"bar":11,"t":0,"dur":8},{"bar":11,"t":8,"dur":8},{"bar":12,"t":0,"dur":8},{"bar":12,"t":8,"dur":8},{"bar":13,"t":0,"dur":8},{"bar":13,"t":8,"dur":8},{"bar":14,"t":0,"dur":8},{"bar":14,"t":8,"dur":8},{"bar":15,"t":0,"dur":8},{"bar":15,"t":8,"dur":8},{"bar":16,"t":0,"dur":8},{"bar":16,"t":8,"dur":8},{"bar":17,"t":0,"dur":8},{"bar":17,"t":8,"dur":8},{"bar":18,"t":0,"dur":8},{"bar":18,"t":8,"dur":8},{"bar":19,"t":0,"dur":8},{"bar":19,"t":8,"dur":8},{"bar":20,"t":0,"dur":8},{"bar":20,"t":8,"dur":8},{"bar":21,"t":0,"dur":8},{"bar":21,"t":8,"dur":8},{"bar":22,"t":0,"dur":8},{"bar":22,"t":8,"dur":8},{"bar":23,"t":0,"dur":8},{"bar":23,"t":8,"dur":8},{"bar":24,"t":0,"dur":8},{"bar":24,"t":8,"dur":8},{"bar":25,"t":0,"dur":8},{"bar":25,"t":8,"dur":8},{"bar":26,"t":0,"dur":8},{"bar":26,"t":8,"dur":8},{"bar":27,"t":0,"dur":8},{"bar":27,"t":8,"dur":8},{"bar":28,"t":0,"dur":8},{"bar":28,"t":8,"dur":8},{"bar":29,"t":0,"dur":8},{"bar":29,"t":8,"dur":8},{"bar":30,"t":0,"dur":8},{"bar":30,"t":8,"dur":8},{"bar":31,"t":0,"dur":8},{"bar":31,"t":8,"dur":8},{"bar":32,"t":0,"dur":8},{"bar":32,"t":8,"dur":8},{"bar":33,"t":0,"dur":8},{"bar":33,"t":8,"dur":8},{"bar":34,"t":0,"dur":8},{"bar":34,"t":8,"dur":8},{"bar":35,"t":0,"dur":8},{"bar":35,"t":8,"dur":8},{"bar":36,"t":0,"dur":8},{"bar":36,"t":8,"dur":8},{"bar":37,"t":0,"dur":8},{"bar":37,"t":8,"dur":8},{"bar":38,"t":0,"dur":8},{"bar":38,"t":8,"dur":8},{"bar":39,"t":0,"dur":8},{"bar":39,"t":8,"dur":8},{"bar":40,"t":0,"dur":8},{"bar":40,"t":8,"dur":8},{"bar":41,"t":0,"dur":8},{"bar":41,"t":8,"dur":8},{"bar":42,"t":0,"dur":8},{"bar":42,"t":8,"dur":8},{"bar":43,"t":0,"dur":8},{"bar":43,"t":8,"dur":8},{"bar":44,"t":0,"dur":8},{"bar":44,"t":8,"dur":8},{"bar":45,"t":0,"dur":8},{"bar":45,"t":8,"dur":8},{"bar":46,"t":0,"dur":8},{"bar":46,"t":8,"dur":8},{"bar":47,"t":0,"dur":8},{"bar":47,"t":8,"dur":8},{"bar":48,"t":0,"dur":8},{"bar":48,"t":8,"dur":8},{"bar":49,"t":0,"dur":8},{"bar":49,"t":8,"dur":8}],"pedal_note":"악보 지시: Ped. ✱ Ped. ✱ sim. — 반 마디(2박)마다 갈아 밟기","key_sharps":1}]</script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const nname = m => NAMES[m%12] + (Math.floor(m/12)-1);
+
+/* ---------- keyboard drawing ---------- */
+const WHITE_W = 24, BLACK_W = 13; let WHITE_H = 150, BLACK_H = 75;
+const isBlack = m => [1,3,6,8,10].includes(m%12);
+const wIdx = {}; { let c=0; for(let k=21;k<=108;k++){ wIdx[k]=c; if(!isBlack(k)) c++; } }
+function buildKeyboard(svg){
+  const NS='http://www.w3.org/2000/svg';
+  svg.innerHTML='';
+  const keys={};
+  const gW=document.createElementNS(NS,'g'), gB=document.createElementNS(NS,'g');
+  for(let m=21;m<=108;m++){
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('class','key '+(isBlack(m)?'black':'white'));
+    r.dataset.midi=m;
+    if(isBlack(m)){
+      r.setAttribute('x',wIdx[m]*WHITE_W - BLACK_W/2); r.setAttribute('y',0); r.setAttribute('width',BLACK_W); r.setAttribute('height',BLACK_H);
+      r.setAttribute('rx',2); r.setAttribute('fill','var(--black-key)'); gB.appendChild(r);
+    } else {
+      const x=wIdx[m]*WHITE_W;
+      r.setAttribute('x',x); r.setAttribute('y',0); r.setAttribute('width',WHITE_W); r.setAttribute('height',WHITE_H);
+      r.setAttribute('fill','var(--white-key)'); r.setAttribute('stroke','var(--key-line)'); r.setAttribute('stroke-width',1); gW.appendChild(r);
+      if(m%12===0){
+        const t=document.createElementNS(NS,'text');
+        t.setAttribute('x',x+WHITE_W/2); t.setAttribute('y',WHITE_H-7); t.setAttribute('text-anchor','middle');
+        t.setAttribute('font-size','9'); t.setAttribute('fill','var(--muted)'); t.setAttribute('font-family','JetBrains Mono, monospace');
+        t.setAttribute('class','lbl'); t.textContent='C'+(m/12-1); gW.appendChild(t);
+      }
+    }
+    keys[m]=r;
+  }
+  svg.appendChild(gW); svg.appendChild(gB);
+  return keys;
+}
+const topKeys = buildKeyboard($('kbTop'));
+const botKeys = buildKeyboard($('kbBot'));
+function paint(keys, m, color){ const r=keys[m]; if(r) r.setAttribute('fill', color || (isBlack(m)?'var(--black-key)':'var(--white-key)')); }
+const NS='http://www.w3.org/2000/svg';
+let fingerLayer=null;
+function clearFingers(){ if(fingerLayer) fingerLayer.innerHTML=''; }
+function fingerLabel(m, f, dim){
+  if(!showFinger || !f) return;
+  if(!fingerLayer){ fingerLayer=document.createElementNS(NS,'g'); fingerLayer.setAttribute('pointer-events','none'); $('kbTop').appendChild(fingerLayer); }
+  const black=isBlack(m);
+  const x = black ? wIdx[m]*WHITE_W : wIdx[m]*WHITE_W + WHITE_W/2;
+  const y = black ? BLACK_H-12 : WHITE_H-22;
+  const c=document.createElementNS(NS,'circle');
+  c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',8.5);
+  c.setAttribute('fill', black ? '#ffffff' : '#1d1b17'); c.setAttribute('opacity', dim?0.45:0.95);
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',x); t.setAttribute('y',y+4); t.setAttribute('text-anchor','middle');
+  t.setAttribute('font-size','12'); t.setAttribute('font-weight','700'); t.setAttribute('font-family','JetBrains Mono, monospace');
+  t.setAttribute('fill', black ? '#1d1b17' : '#ffffff'); t.setAttribute('opacity', dim?0.6:1); t.textContent=f;
+  fingerLayer.appendChild(c); fingerLayer.appendChild(t);
+}
+
+/* visible range: crop the viewBox to the notes in use */
+let showAll=false;
+function layoutKeys(vbH){
+  WHITE_H = vbH; BLACK_H = Math.round(vbH*0.5);
+  for(const svg of [$('kbTop'),$('kbBot')]){
+    for(const r of svg.querySelectorAll('rect.key')) r.setAttribute('height', r.classList.contains('black') ? BLACK_H : WHITE_H);
+    for(const t of svg.querySelectorAll('text.lbl')) t.setAttribute('y', WHITE_H-5);
+  }
+}
+function setView(lo, hi){
+  const x0 = wIdx[lo]*WHITE_W, x1 = (wIdx[hi]+1)*WHITE_W;
+  // keep the drawing's aspect equal to the element's, so nothing is stretched
+  const el=$('kbTop'); const pw=el.clientWidth||1248, ph=el.clientHeight||150;
+  layoutKeys(Math.max(40, Math.round((x1-x0)*ph/pw)));
+  const vb = `${x0} 0 ${x1-x0} ${WHITE_H}`;
+  $('kbTop').setAttribute('viewBox', vb); $('kbBot').setAttribute('viewBox', vb);
+  // label size relative to zoom
+  const scale = Math.max(1, Math.min(2.2, 1248/(x1-x0)));
+  for(const t of document.querySelectorAll('svg.kb text.lbl')) t.setAttribute('font-size', Math.min(9*scale, WHITE_H*0.2).toFixed(1));
+}
+function fitView(){
+  if(showAll || !steps.length){ setView(21,108); return; }
+  let lo=108, hi=21;
+  for(const s of steps) for(const m of s.all){ if(m<lo) lo=m; if(m>hi) hi=m; }
+  lo = Math.max(21, lo - (lo%12) - 0);       // down to the C below (or itself)
+  hi = Math.min(108, hi + (11 - hi%12));     // up to the B above
+  while(hi - lo < 23){ if(lo>21) lo=Math.max(21,lo-12); else hi=Math.min(108,hi+12); }
+  while(isBlack(lo)) lo--; while(isBlack(hi)) hi++;
+  setView(lo, hi);
+}
+
+/* ---------- song model ---------- */
+let songs = {}, song = null, steps = [], hand = 'both', idx = 0;
+let pressedSince = new Set(), held = new Set();
+let stats = {ok:0,bad:0,gaps:[]};
+let handTimes = {}, marks = {}, fingering = {}, showFinger = true, showPedal = true, pedalDown = false;
+
+function flatten(s){
+  const out=[];
+  for(const b of s.bars) for(const e of b.events){
+    const rh = hand==='lh'?[]:e.rh, lh = hand==='rh'?[]:e.lh;
+    if(!rh.length && !lh.length) continue;
+    const fing={}; const ov=(fingering[s.id]||{});
+    (e.rh||[]).forEach((m,i)=>{ const k=`${b.bar}:${e.t}:${m}`; fing[m]= ov[k] ?? (e.rh_f?e.rh_f[i]:0); });
+    (e.lh||[]).forEach((m,i)=>{ const k=`${b.bar}:${e.t}:${m}`; fing[m]= ov[k] ?? (e.lh_f?e.lh_f[i]:0); });
+    out.push({bar:b.bar, t:e.t, rh, lh, all:[...rh,...lh], fing});
+  }
+  return out;
+}
+function unitsPerBar(){ return song?.units || (song?.unit==='sixteenth'?16:8); }
+function pedalState(step, prev){
+  // returns null | 'down' | 'hold' | 'change' | 'up'
+  const segs = song?.pedal; if(!segs || !segs.length || !step) return null;
+  const upb = unitsPerBar();
+  const pos = st => st.bar*upb + st.t;
+  const seg = segs.find(g => pos(step) >= g.bar*upb+g.t && pos(step) < g.bar*upb+g.t+g.dur);
+  const pseg = prev ? segs.find(g => pos(prev) >= g.bar*upb+g.t && pos(prev) < g.bar*upb+g.t+g.dur) : null;
+  if(seg){
+    if(seg.bar*upb+seg.t === pos(step)) return pseg ? 'change' : 'down';
+    if(pseg && pseg !== seg) return 'change';          // segment boundary fell between steps
+    return 'hold';
+  }
+  return pseg ? 'up' : null;
+}
+const PEDAL_TXT = {down:'페달 ▼ 밟기', hold:'페달 유지', change:'페달 ▲▼ 바꾸기', up:'페달 △ 떼기'};
+function range(){ const a=Math.max(1,+$('barFrom').value||1), b=Math.max(a,+$('barTo').value||a); return [a,b]; }
+function rebuild(keepPos){
+  if(!song) return;
+  if(typeof stopPlay==='function') stopPlay();
+  const [a,b]=range();
+  steps = flatten(song).filter(s=>s.bar>=a && s.bar<=b);
+  if(!keepPos || idx>=steps.length) idx=0;
+  pressedSince.clear(); handTimes={};
+  fitView(); render();
+}
+function render(){
+  for(let m=21;m<=108;m++) paint(topKeys,m,null);
+  clearFingers();
+  const cur=steps[idx], nxt=steps[idx+1];
+  if(nxt){ for(const m of nxt.rh) paint(topKeys,m,'var(--rh-next)'); for(const m of nxt.lh) paint(topKeys,m,'var(--lh-next)'); }
+  if(cur){
+    for(const m of cur.rh) paint(topKeys,m,'var(--rh)');
+    for(const m of cur.lh) paint(topKeys,m,'var(--lh)');
+    if(nxt) for(const m of nxt.all){ if(!cur.all.includes(m)) fingerLabel(m, nxt.fing[m], true); }
+    for(const m of cur.all) fingerLabel(m, cur.fing[m], false);
+    $('posBar').textContent = cur.bar;
+    const upb = unitsPerBar(), per = upb/(song.beats_per_bar||4);
+    const beat = Math.floor(cur.t/per)+1, frac = cur.t%per;
+    $('posSub').textContent = `마디 · ${beat}박${frac? (per===4? ['','e','&','a'][frac] : ' 뒤') : ''}`;
+    const chips=[];
+    const fb = m => (showFinger && cur.fing[m]) ? `<b class="fb">${cur.fing[m]}</b>` : '';
+    for(const m of cur.rh) chips.push(`<span class="chip rh ${pressedSince.has(m)?'dim':''}">${nname(m)}${fb(m)}</span>`);
+    for(const m of cur.lh) chips.push(`<span class="chip lh ${pressedSince.has(m)?'dim':''}">${nname(m)}${fb(m)}</span>`);
+    if(hand==='both'){
+      if(!cur.rh.length) chips.push(`<span class="chip rest">오른손 쉼</span>`);
+      if(!cur.lh.length) chips.push(`<span class="chip rest">왼손 쉼</span>`);
+    }
+    const ps = showPedal ? pedalState(cur, steps[idx-1]) : null;
+    const pb=$('pedalBadge'); pb.hidden=!ps; if(ps){ pb.className='pedal-badge '+ps; $('pedalText').textContent=PEDAL_TXT[ps].replace('페달 ',''); }
+    $('noteChips').innerHTML = chips.join('');
+  } else { $('posBar').textContent='–'; $('posSub').textContent='마디'; $('noteChips').innerHTML=''; $('pedalBadge').hidden=true; }
+  renderScore();
+  const prog = `${Math.min(idx,steps.length)}/${steps.length}`;
+  $('stProg').textContent = prog; $('fProg').textContent = prog.replace('/',' / ');
+  $('stOk').textContent = $('fOk').textContent = stats.ok;
+  $('stBad').textContent = $('fBad').textContent = stats.bad;
+  let gap='–';
+  if(stats.gaps.length){ const avg=stats.gaps.reduce((a,b)=>a+b,0)/stats.gaps.length; gap=(avg>=0?'+':'')+Math.round(avg)+'ms'; }
+  $('stGap').textContent = $('fGap').textContent = gap;
+  $('fMarks').textContent = Object.keys(marks[song?.id]||{}).length;
+}
+/* ---------- score (grand staff) ---------- */
+const SP=8;                               // staff line spacing (viewBox units)
+const TREB_Y=52, BASS_Y=132;              // y of the top line of each staff
+const LETTER=[0,0,1,1,2,3,3,4,4,5,5,6];   // midi%12 -> diatonic letter index C..B (sharp spelling)
+const SHARP=[0,1,0,1,0,0,1,0,1,0,1,0];
+function diatonic(m){ return Math.floor(m/12)*7 + LETTER[m%12]; }
+const D_E4 = diatonic(64), D_G2 = diatonic(43);   // bottom lines
+function noteY(m, staff){
+  const bottom = staff==='t' ? TREB_Y+4*SP : BASS_Y+4*SP;
+  const ref = staff==='t' ? D_E4 : D_G2;
+  return bottom - (diatonic(m)-ref)*SP/2;
+}
+const GLYPH={"gClef": "M441 -245c-23 -4 -48 -6 -76 -6c-59 0 -102 7 -130 20c-88 42 -150 93 -187 154c-26 44 -43 103 -48 176c0 6 -1 13 -1 19c0 54 15 111 45 170c29 57 65 106 110 148s96 85 153 127c-3 16 -8 46 -13 92c-4 43 -5 73 -5 89c0 117 16 172 69 257c34 54 64 82 89 82 c21 0 43 -30 69 -92s39 -115 41 -159v-15c0 -109 -21 -162 -67 -241c-13 -20 -63 -90 -98 -118c-13 -9 -25 -19 -37 -29l31 -181c8 1 18 2 28 2c58 0 102 -12 133 -35c59 -43 92 -104 98 -184c1 -7 1 -15 1 -22c0 -123 -87 -209 -181 -248c8 -57 17 -110 25 -162 c5 -31 6 -58 6 -80c0 -30 -5 -53 -14 -70c-35 -64 -88 -99 -158 -103c-5 0 -11 -1 -16 -1c-37 0 -72 10 -108 27c-50 24 -77 59 -80 105v11c0 29 7 55 20 76c18 28 45 42 79 44h6c49 0 93 -42 97 -87v-9c0 -51 -34 -86 -105 -106c17 -24 51 -36 102 -36c62 0 116 43 140 85 c9 16 13 41 13 74c0 20 -1 42 -5 67c-8 53 -18 106 -26 159zM461 939c-95 0 -135 -175 -135 -286c0 -24 2 -48 5 -71c50 39 92 82 127 128c40 53 60 100 60 140v8c-4 53 -22 81 -55 81h-2zM406 119l54 -326c73 25 110 78 110 161c0 7 0 15 -1 23c-7 95 -57 142 -151 142h-12 zM382 117c-72 -2 -128 -47 -128 -120v-7c2 -46 43 -99 75 -115c-3 -2 -7 -5 -10 -10c-70 33 -116 88 -123 172v11c0 68 44 126 88 159c23 17 49 29 78 36l-29 170c-21 -13 -52 -37 -92 -73c-50 -44 -86 -84 -109 -119c-45 -69 -67 -130 -67 -182v-13c5 -68 35 -127 93 -176 s125 -73 203 -73c25 0 50 3 75 9c-19 111 -36 221 -54 331z", "fClef": "M582 -120c0 32 26 58 58 58s58 -26 58 -58s-26 -58 -58 -58s-58 26 -58 58zM582 120c0 32 26 58 58 58s58 -26 58 -58s-26 -58 -58 -58s-58 26 -58 58zM158 96c51 0 73 -14 88 -49l16 -39c0 -17 -2 -30 -7 -40c-3 -11 -10 -21 -19 -31c-17 -18 -49 -43 -84 -43 c-55 0 -77 13 -112 44c-24 21 -35 55 -35 100c0 46 14 81 32 112c30 52 71 79 137 93l36 6l26 2c154 0 235 -68 274 -182c11 -32 18 -68 18 -107c0 -103 -26 -182 -68 -250c-89 -145 -234 -230 -412 -288l-30 -5c-9 0 -14 3 -14 8c3 10 5 11 10 16c35 15 70 30 96 44l78 43 c96 57 162 136 197 258c9 33 17 60 22 100c3 22 5 35 6 39c-7 69 -16 115 -23 140s-4 22 -16 40c-8 12 -19 23 -31 34c-24 21 -62 44 -118 44c-48 0 -84 -8 -113 -28c-28 -19 -42 -44 -42 -73v-16c2 -5 3 -9 4 -11c24 22 52 39 84 39z", "headBlack": "M0 -39c0 68 73 172 200 172c66 0 114 -37 114 -95c0 -84 -106 -171 -218 -171c-64 0 -96 30 -96 94z", "headHalf": "M278 64c0 22 -17 39 -43 39c-12 0 -26 -3 -41 -10c-85 -43 -165 -94 -165 -156c5 -25 15 -32 49 -32c67 11 200 95 200 159zM0 -36c0 68 73 174 200 174c66 0 114 -39 114 -97c0 -84 -106 -173 -218 -173c-64 0 -96 32 -96 96z", "headWhole": "M198 133c102 0 207 -45 207 -133c0 -92 -118 -133 -227 -133c-101 0 -178 46 -178 133c0 88 93 133 198 133zM293 -21c0 14 -3 29 -8 44c-7 20 -18 38 -33 54c-20 21 -43 31 -68 31l-20 -2c-15 -5 -27 -14 -36 -28c-4 -9 -6 -17 -8 -24s-3 -16 -3 -27c0 -15 3 -34 9 -57 s18 -41 34 -55c15 -15 36 -23 62 -23c4 0 10 1 18 2c19 5 32 15 40 30s13 34 13 55z", "sharp": "M136 186v169h17v-164l44 14v-91l-44 -14v-165l44 12v-91l-44 -13v-155h-17v150l-76 -22v-155h-17v149l-43 -13v90l43 14v167l-43 -14v92l43 13v169h17v-163zM60 73v-167l76 22v168z", "natural": "M0 -188v539h18v-191l139 22v-533h-17v186zM18 -100l122 17v176l-122 -19v-174z"};
+function glyphDefs(){
+  return '<defs>' + Object.entries(GLYPH).map(([k,d])=>`<path id="g-${k}" d="${d}"/>`).join('') + '</defs>';
+}
+// SMuFL glyphs from the Leipzig font (OFL): 1 staff space = 250 font units; y axis flipped
+function glyph(name, x, y, col){ const k=SP/250; return `<use href="#g-${name}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k} ${-k})" fill="${col||'var(--ink)'}"/>`; }
+function trebleClef(x, gy){ return glyph('gClef', x, gy); }     // origin on the G line
+function bassClef(x, fy){ return glyph('fClef', x, fy); }       // origin on the F line
+function renderScore(){
+  const svg=$('score'); if(!svg||!song) return;
+  const cur=steps[idx]; const bar0 = cur ? cur.bar : (steps[0]?steps[0].bar:1);
+  const upb=unitsPerBar(); const ks=song.key_sharps||0;
+  const H=206, pw=svg.clientWidth||1000, ph=svg.clientHeight||206;
+  const W=Math.max(600, Math.round(H*pw/ph)); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const left=72, barW=(W-left-10)/2;
+  let out=glyphDefs();
+  const line=(x1,y1,x2,y2,w,c)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c||'var(--muted)'}" stroke-width="${w||1}"/>`;
+  for(const top of [TREB_Y,BASS_Y]) for(let i=0;i<5;i++) out+=line(left-60, top+i*SP, W-4, top+i*SP, 1, 'var(--key-line)');
+  out+=line(left-60, TREB_Y, left-60, BASS_Y+4*SP, 1.2, 'var(--ink)');
+  out+=trebleClef(left-56, TREB_Y+3*SP) + bassClef(left-54, BASS_Y+SP);
+  const ksT=[77,72,79,74,69,76,71], ksB=[53,48,55,50,45,52,47];   // F C G D A E B
+  for(let i=0;i<ks;i++){ out+=glyph('sharp', left-30+i*7, noteY(ksT[i],'t')); out+=glyph('sharp', left-30+i*7, noteY(ksB[i],'b')); }
+  const inKey = m => SHARP[m%12] && [6,1,8,3,10,5,0].slice(0,ks).includes(m%12);
+  // bar numbers under the clefs, out of the way of low notes
+  out+=`<text x="${left-58}" y="${BASS_Y+4*SP+22}" font-size="12" fill="var(--muted)" font-family="JetBrains Mono, monospace">${bar0}–${bar0+1}</text>`;
+  const nxt=steps[idx+1];
+  for(let k=0;k<2;k++){
+    const bar=song.bars.find(b=>b.bar===bar0+k); const x0=left+k*barW;
+    out+=line(x0+barW, TREB_Y, x0+barW, BASS_Y+4*SP, k===1?1.6:1, 'var(--ink)');
+    if(!bar) continue;
+    const isCur = e => cur && cur.bar===bar.bar && cur.t===e.t;
+    const isNext = e => nxt && nxt.bar===bar.bar && nxt.t===e.t;
+    const seen={};
+    for(const e of bar.events){
+      const x = x0 + 14 + (e.t/upb)*(barW-22);
+      for(const [hnd,staff,list,dur] of [['rh','t',e.rh,e.rh_dur],['lh','b',e.lh,e.lh_dur]]){
+        if(!list||!list.length) continue;
+        if(hand==='lh'&&hnd==='rh') continue; if(hand==='rh'&&hnd==='lh') continue;
+        const col = isCur(e) ? (hnd==='rh'?'var(--rh)':'var(--lh)') : (isNext(e) ? (hnd==='rh'?'var(--rh-next)':'var(--lh-next)') : 'var(--next)');
+        const hollow = (dur||1) >= upb/2;
+        const ys = list.map(m=>noteY(m,staff));
+        const up = staff==='t';
+        const k=SP/250, hw=314*k/2;                       // notehead half-width
+        const whole = (dur||1) >= upb;
+        if(!whole){
+          const sx = up ? x+hw-0.6 : x-hw+0.6;
+          const y1 = up ? Math.min(...ys)-3.4*SP : Math.min(...ys)+0.14*SP;
+          const y2 = up ? Math.max(...ys)-0.16*SP : Math.max(...ys)+3.4*SP;
+          out+=line(sx, y1, sx, y2, 1.1, col);
+        }
+        for(const m of list){
+          const y=noteY(m,staff);
+          const top = staff==='t'?TREB_Y:BASS_Y, bot=top+4*SP;
+          for(let ly=top-SP; ly>=y-0.1; ly-=SP) out+=line(x-9,ly,x+9,ly,1,'var(--key-line)');
+          for(let ly=bot+SP; ly<=y+0.1; ly+=SP) out+=line(x-9,ly,x+9,ly,1,'var(--key-line)');
+          if(SHARP[m%12] && !inKey(m) && !seen[staff+m]){ out+=glyph('sharp', x-hw-197*k-2.5, y, col); seen[staff+m]=1; }
+          out+=glyph(whole?'headWhole':(hollow?'headHalf':'headBlack'), whole? x-405*k/2 : x-hw, y, col);
+        }
+      }
+    }
+  }
+  if(cur){
+    const x = left + 14 + (cur.t/upb)*(barW-22);
+    out+=`<rect x="${x-10}" y="${TREB_Y-14}" width="20" height="${BASS_Y+4*SP-TREB_Y+22}" rx="4" fill="var(--ink)" opacity="0.06"/>`;
+  }
+  svg.innerHTML=out;
+}
+function setMsg(text, cls){ const m=$('msg'); m.textContent=text; m.className='msg '+(cls||''); }
+
+/* ---------- judging ---------- */
+function noteOn(m){
+  held.add(m); paint(botKeys,m,'var(--ok)');
+  const cur=steps[idx]; if(!cur) return;
+  const now=performance.now();
+  if(cur.all.includes(m)){
+    if(!pressedSince.has(m)){
+      pressedSince.add(m); stats.ok++;
+      const h = cur.rh.includes(m)?'rh':'lh';
+      if(handTimes[h]===undefined) handTimes[h]=now;
+    }
+    if(cur.all.every(x=>pressedSince.has(x))){
+      if(cur.rh.length && cur.lh.length && handTimes.rh!==undefined && handTimes.lh!==undefined) stats.gaps.push(handTimes.rh - handTimes.lh);
+      advance(1); return;
+    }
+    setMsg(`${nname(m)} 맞음 — 나머지 ${cur.all.filter(x=>!pressedSince.has(x)).map(nname).join(', ')}`, 'ok');
+  } else {
+    stats.bad++; paint(botKeys,m,'var(--bad)');
+    setMsg(`${nname(m)} 아님 → ${cur.all.map(nname).join(', ')}`, 'bad');
+    if($('strictChk').checked){ pressedSince.clear(); handTimes={}; }
+  }
+  render();
+}
+function noteOff(m){ held.delete(m); paint(botKeys,m,null); }
+function advance(d){
+  idx+=d;
+  if(idx>=steps.length){
+    if($('loopChk').checked && steps.length){ idx=0; setMsg('구간 끝 — 처음부터 다시','ok'); }
+    else { idx=steps.length; setMsg('구간을 다 쳤습니다.','ok'); }
+  } else if(idx<0) idx=0; else setMsg('');
+  pressedSince.clear(); handTimes={}; render();
+}
+
+/* ---------- on-screen keyboard (bottom) ---------- */
+(function(){
+  const svg=$('kbBot'); const active=new Map();
+  svg.addEventListener('pointerdown', e=>{
+    const r=e.target.closest('.key'); if(!r) return;
+    e.preventDefault(); svg.setPointerCapture(e.pointerId);
+    const m=+r.dataset.midi; active.set(e.pointerId,m); noteOn(m);
+  });
+  const up=e=>{ const m=active.get(e.pointerId); if(m!==undefined){ noteOff(m); active.delete(e.pointerId);} };
+  svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+})();
+/* long-press marks on top keyboard */
+(function(){
+  const svg=$('kbTop'); let timer=null, pending=null;
+  svg.addEventListener('pointerdown', e=>{
+    const r=e.target.closest('.key'); if(!r) return;
+    const m=+r.dataset.midi; const cur=steps[idx]; if(!cur||!cur.all.includes(m)) return;
+    pending={cur,m};
+    timer=setTimeout(()=>{ toggleMark(cur,m); timer=null; pending=null; }, 600);
+  });
+  const clear=()=>{ if(timer){clearTimeout(timer); timer=null; if(pending){ cycleFinger(pending.cur,pending.m); pending=null; } } };
+  svg.addEventListener('pointerup',clear);
+  for(const ev of ['pointercancel','pointerleave']) svg.addEventListener(ev,()=>{ if(timer){clearTimeout(timer); timer=null;} pending=null; });
+})();
+let fingerSaveTimer=null;
+async function cycleFinger(step, m){
+  if(!song || !showFinger) return;
+  const key=`${step.bar}:${step.t}:${m}`;
+  const cur=step.fing[m]||0; const next = cur>=5 ? 1 : cur+1;
+  fingering[song.id]=fingering[song.id]||{}; fingering[song.id][key]=next;
+  step.fing[m]=next;
+  // apply to every step in this bar range with the same bar and pitch when "같은 음 함께" is on
+  if($('sameChk').checked){
+    for(const st of steps){ if(st.bar===step.bar && st.all.includes(m)){ st.fing[m]=next; fingering[song.id][`${st.bar}:${st.t}:${m}`]=next; } }
+  }
+  toast(`${nname(m)} 손가락 ${next}`);
+  render();
+  try{ localStorage.setItem('kg.fingering', JSON.stringify(fingering)); }catch(e){}
+  if(db){ clearTimeout(fingerSaveTimer); fingerSaveTimer=setTimeout(async()=>{ try{ await db.doc('fingering/'+song.id).set({items:fingering[song.id]}); }catch(e){ console.warn('finger save failed',e); } }, 800); }
+}
+async function toggleMark(step, m){
+  if(!song) return;
+  const key=`${step.bar}:${step.t}:${m}`;
+  marks[song.id] = marks[song.id]||{};
+  if(marks[song.id][key]) delete marks[song.id][key];
+  else marks[song.id][key] = {bar:step.bar, t:step.t, midi:m, name:nname(m), hand: step.rh.includes(m)?'rh':'lh', at:new Date().toISOString()};
+  toast(marks[song.id][key] ? `${nname(m)} (마디 ${step.bar}) 확인 표시` : `${nname(m)} 표시 해제`);
+  render();
+  try{ localStorage.setItem('kg.marks', JSON.stringify(marks)); }catch(e){}
+  if(db){ try{ await db.doc('marks/'+song.id).set({items:marks[song.id]}); }catch(e){ console.warn('mark save failed',e); } }
+}
+
+/* ---------- MIDI ---------- */
+let midiAccess=null;
+async function connectMidi(){
+  if(!navigator.requestMIDIAccess){ setMsg('이 브라우저는 USB MIDI를 지원하지 않아요. Chrome으로 열어 주세요.','bad'); toast('Chrome에서 열어 주세요'); return; }
+  try{ midiAccess = await navigator.requestMIDIAccess({sysex:false}); bindInputs(); midiAccess.onstatechange = bindInputs; }
+  catch(e){
+    console.warn(e);
+    const diag = midiDiag(e);
+    setMsg('MIDI 연결 실패: ' + (e && (e.name||'') + ' ' + (e.message||'')), 'bad');
+    $('diagText').textContent = diag;
+    $('sheet').classList.add('show'); $('standaloneBtn').classList.add('primary'); $('standaloneBox').hidden=false; $('standaloneUrl').value=location.href;
+  }
+}
+function midiDiag(e){
+  const rows=[];
+  rows.push('오류: ' + (e ? ((e.name||'')+' — '+(e.message||'')) : '없음'));
+  rows.push('브라우저 MIDI 지원: ' + (navigator.requestMIDIAccess ? '예' : '아니오'));
+  rows.push('보안 컨텍스트(https): ' + (window.isSecureContext ? '예' : '아니오'));
+  rows.push('claude.ai 틀 안: ' + (embedded ? '예' : '아니오'));
+  try{ if(document.permissionsPolicy||document.featurePolicy){ const pp=document.permissionsPolicy||document.featurePolicy; rows.push('midi 권한 정책 허용: ' + (pp.allowsFeature('midi') ? '예' : '아니오')); } }catch(x){}
+  rows.push('주소: ' + location.origin);
+  rows.push('브라우저: ' + navigator.userAgent.replace(/^.*?(Chrome\/[\d.]+).*$/, '$1') + (/SamsungBrowser/.test(navigator.userAgent)?' (삼성 인터넷)':''));
+  return rows.join('\n');
+}
+function bindInputs(){
+  const names=[];
+  for(const inp of midiAccess.inputs.values()){ inp.onmidimessage = onMidi; names.push(inp.name); }
+  const pill=$('midiPill');
+  if(names.length){ pill.classList.add('on'); $('midiText').textContent=names[0].replace(/\s*(MIDI\s*\d*|Digital Piano)\s*/gi,'').trim()||names[0]; setMsg('연결됐어요. 위 건반의 음을 쳐 보세요.','ok'); }
+  else { pill.classList.remove('on'); $('midiText').textContent='장치 없음'; setMsg('MIDI 권한은 있지만 장치가 안 보여요. 케이블과 피아노 전원을 확인하세요.','bad'); }
+}
+function onMidi(ev){
+  const [st,d1,d2]=ev.data; const cmd=st&0xf0;
+  if(cmd===0x90 && d2>0) noteOn(d1);
+  else if(cmd===0x80 || (cmd===0x90 && d2===0)) noteOff(d1);
+  else if(cmd===0xB0 && d1===64){ pedalDown = d2>=64; $('pedalLive').classList.toggle('on', pedalDown); }
+}
+$('midiPill').addEventListener('click', connectMidi);
+$('midiBtn2').addEventListener('click', ()=>{ closeSheet(); connectMidi(); });
+
+/* ---------- listen ---------- */
+let actx=null;
+let scheduled=[];   // oscillators of the current full playback, so Stop can silence them
+function beep(m, t0, dur, vol, track){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type='triangle'; o.frequency.value=440*Math.pow(2,(m-69)/12);
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0+dur+0.05);
+  if(track) scheduled.push({o,g});
+}
+function ensureAudio(){ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }
+function unitSec(){ return 60/(song.tempo||120)/(unitsPerBar()/(song.beats_per_bar||4)); }
+/* listen to the current step's notes only */
+$('listenBtn').addEventListener('click', ()=>{
+  if(!song) return; ensureAudio();
+  const cur=steps[idx]; if(!cur) return;
+  const t0=actx.currentTime+0.03, u=unitSec();
+  for(const m of cur.rh) beep(m, t0, Math.max(2,u*2), 0.18);
+  for(const m of cur.lh) beep(m, t0, Math.max(2,u*2), 0.14);
+});
+/* play the whole selected range from the current bar, following the guide */
+let playing=null;
+function stopPlay(){
+  if(!playing) return;
+  clearTimeout(playing.timer); playing=null;
+  const now=actx?actx.currentTime:0;
+  for(const {o,g} of scheduled){ try{ g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(0,now); o.stop(now+0.01); }catch(e){} }
+  scheduled=[];
+  $('playBtn').textContent='▶ 전체'; $('playBtn').classList.remove('primary');
+  render();
+}
+$('playBtn').addEventListener('click', ()=>{
+  if(playing){ stopPlay(); return; }
+  if(!song || !steps.length) return; ensureAudio();
+  const u=unitSec(), upb=unitsPerBar();
+  const start = Math.min(idx, steps.length-1);
+  const startBar = steps[start].bar;
+  const [a,b] = range();
+  // schedule every event from the start bar to the end of the range, in real time
+  const evs=[];
+  for(const bb of song.bars){ if(bb.bar<startBar || bb.bar>b) continue; for(const e of bb.events) evs.push({bar:bb.bar, e}); }
+  const t0=actx.currentTime+0.1;
+  for(const {bar,e} of evs){
+    const at = t0 + ((bar-startBar)*upb + e.t)*u;
+    if(hand!=='lh') for(const m of e.rh) beep(m, at, (e.rh_dur||1)*u*0.9, 0.18, true);
+    if(hand!=='rh') for(const m of e.lh) beep(m, at, (e.lh_dur||1)*u*0.9, 0.14, true);
+  }
+  // move the guide along with playback
+  playing={timer:null};
+  $('playBtn').textContent='■ 정지'; $('playBtn').classList.add('primary');
+  const posOf = st => (st.bar-startBar)*upb + st.t;
+  let k=start;
+  const tick=()=>{
+    if(!playing) return;
+    const elapsed=(actx.currentTime-t0)/u;
+    while(k<steps.length && posOf(steps[k])<=elapsed+0.01) k++;
+    const show=Math.max(start, k-1);
+    if(show!==idx){ idx=show; pressedSince.clear(); handTimes={}; render(); }
+    const total=((b-startBar+1)*upb)*u;
+    if(actx.currentTime-t0 > total+0.3){ stopPlay(); setMsg('재생 끝',''); return; }
+    playing.timer=setTimeout(tick,60);
+  };
+  setMsg(`마디 ${startBar}~${b} 재생 중 (♩=${song.tempo})`,'');
+  tick();
+});
+
+/* ---------- controls ---------- */
+$('handSeg').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  hand=b.dataset.hand;
+  for(const x of $('handSeg').querySelectorAll('button')) x.setAttribute('aria-pressed', x===b?'true':'false');
+  rebuild(false);
+});
+$('barFrom').addEventListener('change', ()=>rebuild(false));
+$('barTo').addEventListener('change', ()=>rebuild(false));
+$('restartBtn').addEventListener('click', ()=>{ stats={ok:0,bad:0,gaps:[]}; idx=0; rebuild(false); setMsg(''); closeSheet(); });
+$('prevBtn').addEventListener('click', ()=>advance(-1));
+$('nextBtn').addEventListener('click', ()=>advance(1));
+$('rangeBtn').addEventListener('click', ()=>{ showAll=!showAll; $('rangeBtn').setAttribute('aria-pressed', showAll); fitView(); });
+$('songSel').addEventListener('change', ()=>loadSong($('songSel').value));
+$('menuBtn').addEventListener('click', ()=>{ $('sheet').classList.add('show'); });
+function closeSheet(){ $('sheet').classList.remove('show'); }
+$('closeSheet').addEventListener('click', closeSheet);
+const APP_URL='https://claude.ai/artifact/DvtUNPZasnLTZCdgcoivYw';
+$('standaloneBtn').addEventListener('click', ()=>{
+  // the page's own address (without the claude.ai frame) – a top-level tab can ask for MIDI
+  const box=$('standaloneBox'); box.hidden=!box.hidden;
+  $('standaloneUrl').value=location.href;
+  if(!box.hidden){ $('standaloneUrl').focus(); $('standaloneUrl').select(); }
+});
+$('copyStandalone').addEventListener('click', async ()=>{
+  const u=$('standaloneUrl'); u.value=location.href; u.focus(); u.select(); u.setSelectionRange(0, u.value.length);
+  let ok=false;
+  try{ await navigator.clipboard.writeText(u.value); ok=true; }catch(e){}
+  if(!ok){ try{ ok=document.execCommand('copy'); }catch(e){} }
+  toast(ok ? '단독 주소를 복사했어요' : '복사가 막혀 있어요. 주소를 길게 눌러 직접 복사하세요');
+});
+$('selectStandalone').addEventListener('click', ()=>{ const u=$('standaloneUrl'); u.value=location.href; u.focus(); u.select(); u.setSelectionRange(0, u.value.length); });
+$('copyBtn').addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(APP_URL); toast('링크를 복사했어요'); }
+  catch(e){ window.prompt('이 주소를 복사하세요', APP_URL); }
+});
+$('sheet').addEventListener('click', e=>{ if(e.target===$('sheet')) closeSheet(); });
+$('fsBtn').addEventListener('click', async ()=>{
+  try{ if(document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }catch(e){ toast('전체 화면을 열 수 없어요'); }
+  closeSheet();
+});
+/* wake lock */
+let wake=null;
+async function updateWake(){
+  try{
+    if($('wakeChk').checked && 'wakeLock' in navigator && document.visibilityState==='visible'){ if(!wake){ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release',()=>{wake=null;}); } }
+    else if(wake){ await wake.release(); wake=null; }
+  }catch(e){ wake=null; }
+}
+$('wakeChk').addEventListener('change', updateWake);
+$('fingerChk').addEventListener('change', ()=>{ showFinger=$('fingerChk').checked; render(); });
+$('pedalChk').addEventListener('change', ()=>{ showPedal=$('pedalChk').checked; render(); });
+$('scoreChk').addEventListener('change', ()=>{ $('scoreWrap').hidden=!$('scoreChk').checked; fitHeights(); });
+document.addEventListener('visibilitychange', updateWake);
+document.addEventListener('pointerdown', updateWake, {once:true});
+
+function loadSong(id){
+  song=songs[id]; if(!song) return;
+  $('songSub').textContent = `${song.subtitle||song.title} · ♩=${song.tempo}`;
+  $('pedalNote').textContent = song.pedal_note || '';
+  const last = song.bars[song.bars.length-1].bar;
+  $('barFrom').max=last; $('barTo').max=last; $('barFrom').value=1; $('barTo').value=last;
+  stats={ok:0,bad:0,gaps:[]}; idx=0; rebuild(false);
+  try{ localStorage.setItem('kg.song', id); }catch(e){}
+}
+function fillSongSel(){
+  const sel=$('songSel'); sel.innerHTML='';
+  for(const s of Object.values(songs)){ const o=document.createElement('option'); o.value=s.id; o.textContent=s.title; sel.appendChild(o); }
+}
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1600); }
+
+/* ---------- boot ---------- */
+const builtins = JSON.parse($('builtinSongs').textContent);
+for(const b of builtins) songs[b.id]=b;
+// local (per-device) copies of fingering/marks, used when the claude.ai store is unavailable
+try{ fingering = JSON.parse(localStorage.getItem('kg.fingering')||'{}'); marks = JSON.parse(localStorage.getItem('kg.marks')||'{}'); }catch(e){}
+fillSongSel();
+let remembered=null; try{ remembered=localStorage.getItem('kg.song'); }catch(e){}
+loadSong(songs[remembered]?remembered:builtins[0].id);
+const embedded = (()=>{ try{ return window.top !== window.self; }catch(e){ return true; } })();
+$('modeNote').textContent = embedded ? 'claude.ai 화면 안에서 열려 있습니다. 이 상태에서는 피아노(USB MIDI) 연결이 막힐 수 있으니, 연결이 안 되면 「단독 주소 보기」의 주소를 복사해 새 탭에서 여세요. 단독 창에서는 운지 수정·확인 표시가 이 기기에만 저장됩니다.' : '단독 창 모드입니다. 운지 수정·확인 표시는 이 기기에 저장됩니다.';
+window.addEventListener('resize', ()=>{ fitHeights(); });
+function fitHeights(){
+  const app=document.querySelector('.app');
+  const kbs=[$('kbTop'),$('kbBot')];
+  // measure everything except the two keyboards
+  const cs=getComputedStyle(app);
+  const pad=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+  const gap=parseFloat(cs.rowGap||cs.gap||0)*5;
+  let used=pad+gap;
+  for(const el of app.children){
+    if(el.classList.contains('kb-wrap')){
+      const c=getComputedStyle(el);
+      used+=parseFloat(c.paddingTop)+parseFloat(c.paddingBottom)+parseFloat(c.borderTopWidth)+parseFloat(c.borderBottomWidth);
+      used+=el.querySelector('.kb-head').getBoundingClientRect().height;
+    } else used+=el.getBoundingClientRect().height;
+  }
+  const vh=(window.visualViewport?visualViewport.height:window.innerHeight);
+  const avail=vh-used-2;
+  const portrait=vh>window.innerWidth;
+  let h=Math.floor(avail/4);   // half of the space the two keyboards could take
+  h=Math.min(h, Math.floor(window.innerWidth*(portrait?0.23:0.18)));
+  h=Math.max(h, 90);
+  for(const k of kbs) k.style.height=h+'px';
+  fitView(); renderScore();
+}
+fitHeights(); setTimeout(fitHeights,300); document.fonts?.ready?.then(fitHeights);
+if(window.visualViewport) visualViewport.addEventListener('resize', fitHeights);
+
+let db=null;
+(async ()=>{
+  try{ db = await (window.claude?.use ? claude.use('db') : Promise.resolve(null)); }catch(e){ db=null; }
+  if(!db){ $('dbText').textContent= embedded ? '없음' : '단독 모드 · 이 기기에 저장'; return; }
+  try{
+    const snap = await db.collection('songs').get();
+    for(const d of snap.docs){ const s=d.data(); if(s && s.bars) songs[s.id||d.id]=Object.assign({id:d.id},s); }
+    fillSongSel(); $('songSel').value = song.id;
+    const ms = await db.collection('marks').get();
+    for(const d of ms.docs){ marks[d.id] = Object.assign(marks[d.id]||{}, (d.data()||{}).items||{}); }
+    const fg = await db.collection('fingering').get();
+    for(const d of fg.docs){ fingering[d.id] = Object.assign(fingering[d.id]||{}, (d.data()||{}).items||{}); }
+    try{ localStorage.setItem('kg.fingering', JSON.stringify(fingering)); localStorage.setItem('kg.marks', JSON.stringify(marks)); }catch(e){}
+    rebuild(true);
+    $('dbText').textContent=`연결 · 곡 ${Object.keys(songs).length}개`;
+    render();
+  }catch(e){ console.warn(e); $('dbText').textContent='읽기 실패'; }
+})();
+})();
+</script>
+</body></html>
