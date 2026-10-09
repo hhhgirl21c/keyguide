@@ -912,7 +912,7 @@ function loadSamples(){
   })).then(()=>{ samplesDone=true; });
   return samplesReady;
 }
-window.kgDebug = ()=>({samples:Object.keys(sampleBuf).length, done:samplesDone, ctx: actx&&actx.state, live: scheduled.length, buffer: scheduled.filter(r=>r.o.buffer).length});
+window.kgDebug = ()=>({samples:Object.keys(sampleBuf).length, done:samplesDone, ctx: actx&&actx.state, live: scheduled.length, buffer: scheduled.filter(r=>r.o.buffer).length, idx, step: steps[idx] ? [steps[idx].bar, steps[idx].t] : null});
 function nearestSample(m){ let best=SAMPLE_KEYS[0]; for(const k of SAMPLE_KEYS){ if(Math.abs(k-m) < Math.abs(best-m)) best=k; } return best; }
 let actx=null, master=null;
 let scheduled=[];   // sources of the current full playback, so Stop can silence them
@@ -945,14 +945,17 @@ function prepareAudio(){
 }
 function ensureAudio(){ prepareAudio(); if(actx.state==='suspended') actx.resume(); }
 try{ prepareAudio(); }catch(e){ console.warn('audio', e); }
-/* MIDI out: note on/off at audio-clock times (converted to the MIDI timestamp clock), velocities per hand */
-let midiBase=null;   // {perf, ctx} pair taken when playback starts, to convert actx seconds -> performance.now() ms
-function midiTs(at){ return midiBase.perf + (at - midiBase.ctx)*1000; }
+/* MIDI out: note on/off with timestamps on the performance.now() clock (seconds here, ms on the wire), velocities per hand.
+   v55: playback through the piano runs entirely on that clock — the guide cursor included — instead of the audio clock.
+   The two clocks drift apart over a long piece (the AudioContext is silent in this mode and its clock follows the audio
+   hardware, while the MIDI scheduler follows the system clock), which showed as the score falling out of step with the
+   piano in Nuvole Bianche. Messages are also sent a second and a half ahead rather than the whole piece at once. */
+function clockNow(out){ return out ? performance.now()/1000 : actx.currentTime; }
 function midiNote(out, m, at, dur, vel){
-  out.send([0x90, m, vel], midiTs(at));
-  out.send([0x80, m, 0], midiTs(at+dur) - 2);
+  out.send([0x90, m, vel], at*1000);
+  out.send([0x80, m, 0], (at+dur)*1000 - 2);
 }
-function midiPedal(out, at, down){ out.send([0xB0, 64, down?127:0], midiTs(at)); }
+function midiPedal(out, at, down){ out.send([0xB0, 64, down?127:0], at*1000); }
 function midiSilence(out){
   try{ out.clear(); }catch(e){}                       // drop messages still queued for the future (Chrome)
   for(const ch of [0]){ out.send([0xB0|ch, 64, 0]); out.send([0xB0|ch, 123, 0]); out.send([0xB0|ch, 120, 0]); }
@@ -962,9 +965,9 @@ $('listenBtn').addEventListener('click', async ()=>{
   if(!song) return; ensureAudio();
   if(!samplesDone && !pianoOut()) await samplesReady;   // first tap right after loading: wait for the piano samples
   const cur=steps[idx]; if(!cur) return;
-  const t0=actx.currentTime+0.03, u=unitSec(barObj(cur.bar)), d=Math.max(0.6, Math.min(2, u*2));
   const out=pianoOut();
-  if(out){ midiBase={perf:performance.now(), ctx:actx.currentTime}; for(const m of cur.rh) midiNote(out,m,t0,d,80); for(const m of cur.lh) midiNote(out,m,t0,d,66); return; }
+  const t0=clockNow(out)+0.03, u=unitSec(barObj(cur.bar)), d=Math.max(0.6, Math.min(2, u*2));
+  if(out){ for(const m of cur.rh) midiNote(out,m,t0,d,80); for(const m of cur.lh) midiNote(out,m,t0,d,66); return; }
   for(const m of cur.rh) beep(m, t0, Math.max(2,u*2), 0.18);
   for(const m of cur.lh) beep(m, t0, Math.max(2,u*2), 0.14);
 });
@@ -991,20 +994,22 @@ $('playBtn').addEventListener('click', async ()=>{
   // schedule every event from the start bar to the end of the range, in real time
   const evs=[];
   for(const bb of song.bars){ if(bb.bar<startBar || bb.bar>b) continue; for(const e of bb.events) evs.push({bar:bb.bar, e}); }
-  const t0=actx.currentTime+0.1;
+  const out=pianoOut();
+  const t0=clockNow(out)+0.1;
   // seconds at which each bar starts (bars may differ in meter and tempo)
   const secAt={}; { let acc=0; for(const bb of song.bars){ if(bb.bar<startBar) continue; secAt[bb.bar]=acc; acc+=(bb.units||unitsPerBar())*unitSec(bb); } }
   const secOf=(bar,t)=>secAt[bar]+t*unitSec(barObj(bar));
   // schedule notes a little ahead of time instead of creating every oscillator of the piece up front
   // (a long piece meant thousands of live audio nodes at once, which crackled on the tablet)
-  const queue=evs.map(({bar,e})=>({bar,e,at:t0+secOf(bar,e.t)})).sort((x,y)=>x.at-y.at);
-  const out=pianoOut();
+  const queue=evs.map(({bar,e})=>({bar,e,at:t0+secOf(bar,e.t)}));
   let qi=0;
   const pump=()=>{
-    // through the piano the whole range is sent at once with timestamps (the port keeps its own queue)
-    const horizon = out ? Infinity : actx.currentTime+2.0;
+    // through the piano: 1.5 s ahead (the port keeps its own queue; Stop clears it)
+    const horizon = clockNow(out) + (out ? 1.5 : 2.0);
     while(qi<queue.length && queue[qi].at<=horizon){
-      const {bar,e,at}=queue[qi++]; const u=unitSec(barObj(bar));
+      const it=queue[qi++];
+      if(it.pedal!==undefined){ midiPedal(out, it.at, it.pedal); continue; }
+      const {bar,e,at}=it; const u=unitSec(barObj(bar));
       // *_hold: sounding length when a note is tied on into the following bar(s); *_dur stays the printed value for the staff drawing
       const dr=(e.rh_hold||e.rh_dur||1)*u*0.9, dl=(e.lh_hold||e.lh_dur||1)*u*0.9;
       if(out){
@@ -1017,7 +1022,6 @@ $('playBtn').addEventListener('click', async ()=>{
     }
   };
   if(out){
-    midiBase={perf:performance.now(), ctx:actx.currentTime};
     // the printed pedal marks, as sustain-pedal messages; a segment that starts where the previous ends re-presses the pedal
     for(const g of (song.pedal||[])){
       const gs=posOfStep(g), ge=gs+g.dur, rs=barStart[startBar]??0, re=(barStart[b]??0)+barUnits(b);
@@ -1026,9 +1030,10 @@ $('playBtn').addEventListener('click', async ()=>{
       const eBar=song.bars.find(x=>(barStart[x.bar]??0)<Math.min(ge,re) && Math.min(ge,re)<=(barStart[x.bar]??0)+(x.units||unitsPerBar()));
       if(!sBar||!eBar) continue;
       const atS=t0+secOf(sBar.bar, Math.max(gs,rs)-(barStart[sBar.bar]??0)), atE=t0+secOf(eBar.bar, Math.min(ge,re)-(barStart[eBar.bar]??0));
-      midiPedal(out, atS+0.01, true); midiPedal(out, atE-0.03, false);
+      queue.push({at:atS+0.01, pedal:true}); queue.push({at:atE-0.03, pedal:false});
     }
   }
+  queue.sort((x,y)=>x.at-y.at);
   pump();
   // move the guide along with playback
   playing={timer:null, out};
@@ -1038,12 +1043,12 @@ $('playBtn').addEventListener('click', async ()=>{
   const tick=()=>{
     if(!playing) return;
     pump();
-    const elapsed=actx.currentTime-t0;
+    const elapsed=clockNow(out)-t0;
     while(k<steps.length && posOf(steps[k])<=elapsed+0.005) k++;
     const show=Math.max(start, k-1);
     if(show!==idx){ idx=show; pressedSince.clear(); handTimes={}; render(); }
     const total=secAt[b]+barUnits(b)*unitSec(barObj(b));
-    if(actx.currentTime-t0 > total+0.3){ stopPlay(); setMsg('재생 끝',''); return; }
+    if(clockNow(out)-t0 > total+0.3){ stopPlay(); setMsg('재생 끝',''); return; }
     playing.timer=setTimeout(tick,60);
   };
   setMsg(`마디 ${startBar}~${b} 재생 중 (♩=${(barObj(startBar)&&barObj(startBar).tempo)||song.tempo})` + (out ? ' · 피아노에서 울려요' : ''),'');
