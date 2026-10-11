@@ -239,7 +239,6 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       <section class="set">
         <h3>연습</h3>
         <label class="opt"><span>구간 반복<small>구간 끝에서 처음으로 돌아가요</small></span><input type="checkbox" class="tg" id="loopChk" checked></label>
-        <label class="opt"><span>틀리면 그 음부터 다시</span><input type="checkbox" class="tg" id="strictChk"></label>
         <label class="opt"><span>꾸밈음 포함</span><input type="checkbox" class="tg" id="graceChk" checked></label>
       </section>
       <section class="set">
@@ -784,8 +783,11 @@ function noteOn(m){
   } else {
     stats.bad++; pass.bad++; paint(botKeys,m,'var(--bad)');
     const st=$('stage'); st.classList.remove('miss'); void st.offsetWidth; st.classList.add('miss'); setTimeout(()=>st.classList.remove('miss'), 300);
-    setMsg(`${nameOf(m,true)} 아님 → ${cur.all.map(x=>nameOf(x,true)).join(', ')}`, 'bad');
-    if($('strictChk').checked){ pressedSince.clear(); handTimes={}; }
+    // v61: a wrong key throws the step back to the start — the notes already pressed no longer count, so the
+    // step only advances once both hands play it correctly together (even a key still held must be struck again)
+    const both = cur.rh.length && cur.lh.length;
+    setMsg(`${nameOf(m,true)} 아님 — ${both?'양손 모두 ':''}다시: ${cur.all.map(x=>nameOf(x,true)).join(', ')}`, 'bad');
+    pressedSince.clear(); handTimes={};
   }
   render();
 }
