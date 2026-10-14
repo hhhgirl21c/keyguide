@@ -38,6 +38,14 @@ svg .ic, .ic{width:18px;height:18px;flex:none}
 .pill{display:inline-flex;align-items:center;gap:6px;height:30px;background:var(--pill);border:0;border-radius:999px;padding:0 12px;font:inherit;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer}
 .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--bad);flex:none}
 .pill.on{color:var(--ink)} .pill.on .dot{background:var(--ok)}
+.pill.rec .rdot{width:8px;height:8px;border-radius:50%;border:2px solid var(--bad);box-sizing:border-box;flex:none}
+.pill.rec.on{color:var(--bad);font-family:var(--mono);font-variant-numeric:tabular-nums} .pill.rec.on .rdot{background:var(--bad);animation:recblink 1s steps(2,start) infinite}
+@keyframes recblink{to{opacity:.25}}
+.rec-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding-block:9px;border-bottom:1px solid var(--line-2);font-size:13px}
+.rec-item .meta{flex:1;min-width:140px} .rec-item .meta small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.rec-item .acts{display:flex;gap:6px} .rec-item .acts button{height:30px;padding:0 10px;font-size:12px}
+.rec-item audio{flex-basis:100%;width:100%;height:36px}
+.rec-empty{font-size:13px;color:var(--muted);padding-block:8px}
 
 /* practice controls: grouped by what they act on */
 .ctl{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding-block:1px}
@@ -172,7 +180,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
 }
 @media (min-width:1300px) and (min-height:700px){ .app{max-width:1500px;margin-inline:auto} }
 @media (prefers-reduced-motion:no-preference){ .key{transition:fill .08s} }
-@media (prefers-reduced-motion:reduce){ .stage.miss{animation:none} .prog i{transition:none} }
+@media (prefers-reduced-motion:reduce){ .stage.miss{animation:none} .prog i{transition:none} .pill.rec.on .rdot{animation:none} }
 </style>
 
 <div class="app">
@@ -180,6 +188,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
     <h1>건반 길잡이</h1>
     <span class="sub" id="songSub"></span>
     <button class="pill" id="midiPill" type="button"><span class="dot"></span><span id="midiText">피아노 연결</span></button>
+    <button class="pill rec" id="recPill" type="button" aria-pressed="false" title="피아노 소리 녹음 — 다시 누르면 멈춤"><span class="rdot"></span><span id="recText">녹음</span></button>
     <button class="pill" id="menuBtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>설정</button>
   </header>
 
@@ -254,6 +263,13 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
         <h3>소리</h3>
         <label class="opt"><span>재생 소리<small>자동: 피아노가 연결돼 있으면 피아노에서, 아니면 앱의 피아노 음원으로</small></span><select id="soundSel"><option value="auto">자동</option><option value="piano">피아노로 보내기</option><option value="app">앱 음원</option></select></label>
       </section>
+      <section class="set" id="recSet">
+        <h3>녹음</h3>
+        <label class="opt"><span>녹음 입력<small>P-225는 USB 케이블로 소리도 보내요. 자동: USB·피아노 이름의 입력을 먼저 고릅니다</small></span><select id="recDevSel"><option value="auto">자동</option></select></label>
+        <p class="help" id="recInfo">위의 「녹음」 버튼으로 시작하고 다시 누르면 멈춰요. 녹음은 이 기기에만 저장됩니다.</p>
+        <div id="recList"></div>
+        <div class="row"><small id="recStore" style="color:var(--muted)"></small></div>
+      </section>
       <section class="set">
         <h3>운지</h3>
         <label class="opt"><span>같은 마디의 같은 음도 함께 수정<small>건반 위 번호를 짧게 누르면 1→5로 바뀌어요</small></span><input type="checkbox" class="tg" id="sameChk" checked></label>
@@ -279,6 +295,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       <p class="help">페달 표시는 그 음에서 페달을 밟기·유지·바꾸기(떼었다 바로 다시 밟기)·떼기 중 무엇을 할지 알려주고, 아래 「페달」 점은 P-225 페달을 실제로 밟고 있는지를 보여줍니다. 시차는 두 손이 함께 칠 자리에서 오른손이 왼손보다 늦게(+) 또는 빨리(−) 누른 평균(ms)입니다.</p>
       <p class="help">악보는 종이 악보와 같은 줄 나눔으로 한 줄씩 보여주고, 현재 줄 안에서 커서만 움직입니다(좁은 화면에서는 한 줄을 나눠서). 악보를 왼쪽으로 쓸면 다음 마디, 오른쪽으로 쓸면 이전 마디로 가고, 음표를 누르면 그 자리로 바로 갑니다. 음이름(계이름)은 설정에서 한글/영어와 악보에 표시할 범위를 고를 수 있고, 조표에 따라 미♯·시♭처럼 악보에 적힌 대로 읽습니다.</p>
       <p class="help">「이 음」과 「전체」 재생은 피아노가 USB로 연결돼 있으면 피아노로 음을 보내서 피아노 스피커로 울리고(페달 기호도 서스테인 신호로 함께), 연결이 없으면 앱에 내장된 피아노 음원(FluidR3 그랜드피아노 샘플, MIT 라이선스)으로 재생합니다. 설정의 「재생 소리」에서 바꿀 수 있어요.</p>
+      <p class="help">「녹음」은 피아노가 USB로 연결돼 있을 때 피아노 소리를 그 케이블로 받아 녹음합니다(P-225의 USB 오디오). 녹음 중에는 입력 이름과 레벨이 아래 메시지 줄에 보이고, 다시 누르면 멈추면서 이 기기(브라우저 저장소)에 저장돼요. 설정 › 녹음에서 듣기·파일(.wav)로 내보내기·삭제를 할 수 있고, 입력이 피아노가 아니라 태블릿 마이크로 잡히면 「녹음 입력」에서 바꿔 보세요.</p>
       <p class="help" id="pedalNote"></p>
       <p class="help" id="modeNote"></p>
       <pre class="help" id="diagText"></pre>
@@ -1005,6 +1022,188 @@ function midiSilence(out){
   const now=performance.now();
   for(const at of [now, now+MIDI_AHEAD*1000+60]) for(const d of [[0xB0,64,0],[0xB0,123,0],[0xB0,120,0]]){ try{ out.send(d, at); }catch(e){} }
 }
+/* ---------- recording (v62) ----------
+   The piano's own sound, taken over the same USB cable: the P-225 is a USB audio interface as well as a MIDI device,
+   so getUserMedia on the tablet sees it as an audio input (Android routes recording to a USB audio device while one
+   is attached). The input is pulled through an AudioWorklet (ScriptProcessor as fallback) into 16-bit PCM chunks,
+   written out as a WAV blob and kept in IndexedDB on this device; each recording can be played back, downloaded or
+   deleted from the settings sheet. The microphone would also catch the key noise, hence the USB path. */
+const REC_MAX = 15*60;   // seconds; auto-stop so the PCM chunks cannot eat the tablet's memory
+let rec = null;           // {stream, src, node, analyser, chunks:[], ch, rate, t0, timer, meter, ok0, bad0}
+let recDevice = 'auto';
+try{ recDevice = JSON.parse(localStorage.getItem('kg.rec')||'{}').device || 'auto'; }catch(e){}
+function saveRecPref(){ try{ localStorage.setItem('kg.rec', JSON.stringify({device:recDevice})); }catch(e){} }
+const WORKLET_SRC = `class R extends AudioWorkletProcessor{
+  constructor(){ super(); this.ch=0; this.buf=null; this.pos=0; this.port.onmessage=()=>{ this.flush(); this.port.postMessage({flushed:true}); }; }
+  flush(){ if(this.pos){ const b=this.buf.slice(0,this.pos); this.port.postMessage({ch:this.ch, buf:b.buffer}, [b.buffer]); this.pos=0; } }
+  process(inputs){ const inp=inputs[0]; if(inp && inp.length && inp[0].length){
+    const n=inp[0].length, ch=inp.length;
+    if(ch!==this.ch){ this.flush(); this.ch=ch; this.buf=new Int16Array(4096*ch); }
+    const o=this.buf, p=this.pos;
+    for(let c=0;c<ch;c++){ const d=inp[c]; for(let i=0;i<n;i++){ let v=d[i]; v=v<-1?-1:v>1?1:v; o[p+i*ch+c]=v<0?v*32768:v*32767; } }
+    this.pos+=n*ch; if(this.pos>=o.length) this.flush(); }
+    return true; } }
+registerProcessor('kg-rec', R);`;
+let workletReady = null;
+function loadWorklet(){
+  if(!workletReady){
+    if(!actx.audioWorklet) workletReady = Promise.reject(new Error('no worklet'));
+    else workletReady = actx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET_SRC],{type:'application/javascript'})));
+  }
+  return workletReady;
+}
+function recTime(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function fmtBytes(b){ return b>=1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+async function listAudioInputs(){
+  try{ const ds=await navigator.mediaDevices.enumerateDevices(); return ds.filter(d=>d.kind==='audioinput'); }catch(e){ return []; }
+}
+function pickDevice(list){
+  if(recDevice!=='auto'){ const d=list.find(x=>x.deviceId===recDevice); if(d) return d; }
+  return list.find(d=>/usb|yamaha|p-?225|piano|digital/i.test(d.label||'')) || null;   // null: let the system choose
+}
+async function fillRecDevices(){
+  const sel=$('recDevSel'); const list=await listAudioInputs();
+  sel.innerHTML='<option value="auto">자동</option>' + list.map((d,i)=>`<option value="${d.deviceId}">${(d.label||('입력 '+(i+1))).replace(/</g,'&lt;')}</option>`).join('');
+  sel.value = list.some(d=>d.deviceId===recDevice) ? recDevice : 'auto';
+}
+$('recDevSel').addEventListener('change', ()=>{ recDevice=$('recDevSel').value; saveRecPref(); });
+function recChunk(ch, buf){
+  if(!rec) return;
+  if(rec.ch===0) rec.ch=ch;
+  let a=new Int16Array(buf);
+  if(ch!==rec.ch){   // channel count changed mid-way (rare): fold to the recording's layout
+    const n=a.length/ch, b=new Int16Array(n*rec.ch);
+    for(let i=0;i<n;i++) for(let c=0;c<rec.ch;c++) b[i*rec.ch+c]=a[i*ch+Math.min(c,ch-1)];
+    a=b;
+  }
+  rec.chunks.push(a.buffer); rec.frames += a.length/rec.ch;
+}
+function wavBlob(chunks, ch, rate, frames){
+  const h=new DataView(new ArrayBuffer(44)); const dataLen=frames*ch*2;
+  const str=(o,s)=>{ for(let i=0;i<s.length;i++) h.setUint8(o+i, s.charCodeAt(i)); };
+  str(0,'RIFF'); h.setUint32(4,36+dataLen,true); str(8,'WAVE'); str(12,'fmt '); h.setUint32(16,16,true); h.setUint16(20,1,true);
+  h.setUint16(22,ch,true); h.setUint32(24,rate,true); h.setUint32(28,rate*ch*2,true); h.setUint16(32,ch*2,true); h.setUint16(34,16,true);
+  str(36,'data'); h.setUint32(40,dataLen,true);
+  return new Blob([h.buffer, ...chunks], {type:'audio/wav'});
+}
+async function startRec(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setMsg('이 브라우저에서는 녹음을 쓸 수 없어요. Chrome의 GitHub Pages 판에서 열어 주세요.','bad'); return; }
+  ensureAudio();
+  let list=await listAudioInputs(); let dev=pickDevice(list);
+  const base={echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:{ideal:2}, sampleRate:{ideal:44100}};
+  let stream;
+  try{
+    try{ stream = await navigator.mediaDevices.getUserMedia({audio: dev ? {...base, deviceId:{exact:dev.deviceId}} : base}); }
+    catch(e){ if(dev && e.name==='OverconstrainedError'){ stream = await navigator.mediaDevices.getUserMedia({audio: base}); } else throw e; }
+  }catch(e){
+    console.warn(e);
+    const why = e.name==='NotAllowedError' ? (embedded ? '이 화면(claude.ai 틀 안)에서는 녹음 권한이 막혀 있어요 — GitHub Pages 판에서 써 주세요.' : '오디오 입력 권한이 필요해요. 주소창의 자물쇠 → 마이크 허용 뒤 다시 눌러 주세요.')
+      : e.name==='NotFoundError' ? '오디오 입력 장치가 없어요. 피아노의 USB 케이블과 전원을 확인하세요.' : '녹음을 시작하지 못했어요: '+(e.name||'')+' '+(e.message||'');
+    setMsg(why,'bad'); toast('녹음 시작 실패'); return;
+  }
+  // labels only show up once a stream has been granted: refresh the list and re-check which device we actually got
+  list=await listAudioInputs(); fillRecDevices();
+  const track=stream.getAudioTracks()[0]; const st=track.getSettings ? track.getSettings() : {};
+  const got=list.find(d=>d.deviceId===st.deviceId); const label=(got&&got.label)||track.label||'기본 입력';
+  const src=actx.createMediaStreamSource(stream);
+  const analyser=actx.createAnalyser(); analyser.fftSize=1024; src.connect(analyser);
+  const sink=actx.createGain(); sink.gain.value=0;       // the capture node must be pulled by the graph, but never heard (feedback)
+  let node=null;
+  try{ await loadWorklet(); node=new AudioWorkletNode(actx,'kg-rec'); node.port.onmessage=e=>{ if(e.data.buf) recChunk(e.data.ch, e.data.buf); }; }
+  catch(e){
+    node=actx.createScriptProcessor(4096, 2, 2);
+    node.onaudioprocess=ev=>{ const ib=ev.inputBuffer, ch=ib.numberOfChannels, n=ib.length, out=new Int16Array(n*ch);
+      for(let c=0;c<ch;c++){ const d=ib.getChannelData(c); for(let i=0;i<n;i++){ let v=d[i]; v=v<-1?-1:v>1?1:v; out[i*ch+c]=v<0?v*32768:v*32767; } }
+      recChunk(ch, out.buffer); };
+  }
+  src.connect(node); node.connect(sink).connect(actx.destination);
+  rec={stream, src, node, analyser, sink, chunks:[], ch:0, frames:0, rate:actx.sampleRate, t0:performance.now(), label, ok0:stats.ok, bad0:stats.bad,
+       songTitle: song ? song.title : '', bars: song ? ($('barFrom').value+'–'+$('barTo').value) : ''};
+  track.onended=()=>{ if(rec) stopRec('입력이 끊겨 녹음을 멈췄어요'); };
+  const pill=$('recPill'); pill.classList.add('on'); pill.setAttribute('aria-pressed','true');
+  const buf=new Float32Array(analyser.fftSize);
+  rec.timer=setInterval(()=>{
+    if(!rec) return;
+    const s=(performance.now()-rec.t0)/1000; $('recText').textContent=recTime(s);
+    analyser.getFloatTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++) sum+=buf[i]*buf[i];
+    const db=20*Math.log10(Math.sqrt(sum/buf.length)+1e-6); const lvl=Math.max(0,Math.min(6,Math.round((db+60)/9)));
+    setMsg(`녹음 중 ${recTime(s)} · 입력 ${label} · ${rec.rate/1000}kHz ${rec.ch||'?'}ch · 레벨 ${'■'.repeat(lvl)}${'□'.repeat(6-lvl)}${db>-1?' (클리핑)':''}`, 'ok');
+    if(s>=REC_MAX) stopRec('15분이 되어 녹음을 저장했어요');
+  }, 150);
+  setMsg(`녹음 시작 · 입력 ${label}`,'ok');
+}
+async function stopRec(note){
+  if(!rec || rec.stopping) return;
+  rec.stopping=true; clearInterval(rec.timer);
+  if(rec.node.port){   // let the worklet hand over its last partial buffer before the graph is torn down
+    const port=rec.node.port;
+    await new Promise(res=>{ const h=e=>{ if(e.data.flushed){ port.removeEventListener('message',h); res(); } }; port.addEventListener('message',h); setTimeout(res,200); port.postMessage('flush'); });
+  }
+  const r=rec; rec=null;
+  try{ r.src.disconnect(); r.node.disconnect(); r.sink.disconnect(); r.analyser.disconnect(); }catch(e){}
+  if(r.node.port) r.node.port.onmessage=null; else r.node.onaudioprocess=null;
+  for(const t of r.stream.getTracks()) t.stop();
+  const pill=$('recPill'); pill.classList.remove('on'); pill.setAttribute('aria-pressed','false'); $('recText').textContent='녹음';
+  const dur=r.frames/r.rate;
+  if(r.frames<r.rate*0.5){ setMsg('녹음이 너무 짧아 저장하지 않았어요.','bad'); return; }
+  const blob=wavBlob(r.chunks, r.ch||1, r.rate, r.frames);
+  const item={ts:Date.now(), song:r.songTitle, bars:r.bars, dur, rate:r.rate, ch:r.ch||1, size:blob.size, ok:stats.ok-r.ok0, bad:stats.bad-r.bad0, input:r.label, blob};
+  try{ await recDb('put', item); setMsg((note||'녹음을 저장했어요')+` · ${recTime(dur)} · ${fmtBytes(blob.size)} — 설정 › 녹음에서 들을 수 있어요`,'ok'); toast('녹음 저장 '+recTime(dur)); }
+  catch(e){ console.warn(e); setMsg('녹음을 저장하지 못했어요: '+(e.message||e),'bad'); }
+  refreshRecList();
+}
+$('recPill').addEventListener('click', ()=>{ if(rec) stopRec(); else startRec(); });
+/* IndexedDB: one store of {id, ts, song, bars, dur, rate, ch, size, ok, bad, input, blob} */
+function recDb(op, arg){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('kg-rec',1);
+    req.onupgradeneeded=()=>{ req.result.createObjectStore('rec',{keyPath:'id',autoIncrement:true}); };
+    req.onerror=()=>reject(req.error);
+    req.onsuccess=()=>{
+      const db=req.result, tx=db.transaction('rec', op==='all'?'readonly':'readwrite'), st=tx.objectStore('rec');
+      let r; if(op==='put') r=st.put(arg); else if(op==='del') r=st.delete(arg); else if(op==='get') r=st.get(arg); else r=st.getAll();
+      r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); tx.oncomplete=()=>db.close();
+    };
+  });
+}
+let recUrls=[];
+async function refreshRecList(){
+  const box=$('recList'); for(const u of recUrls) URL.revokeObjectURL(u); recUrls=[];
+  let items=[]; try{ items=await recDb('all'); }catch(e){ box.innerHTML='<p class="rec-empty">이 브라우저에서는 녹음 저장소를 열 수 없어요.</p>'; return; }
+  items.sort((a,b)=>b.ts-a.ts);
+  if(!items.length){ box.innerHTML='<p class="rec-empty">아직 녹음이 없어요.</p>'; }
+  else box.innerHTML=items.map(it=>{
+    const d=new Date(it.ts); const when=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const judged = (it.ok+it.bad) ? ` · 맞음 ${it.ok} 틀림 ${it.bad}` : '';
+    return `<div class="rec-item" data-id="${it.id}"><div class="meta">${(it.song||'녹음').replace(/</g,'&lt;')} <span style="color:var(--muted)">${it.bars?'마디 '+it.bars:''}</span><small>${when} · ${recTime(it.dur)} · ${fmtBytes(it.size)} · ${it.input||''} ${it.rate/1000}kHz ${it.ch}ch${judged}</small></div>
+      <div class="acts"><button type="button" data-act="play">듣기</button><button type="button" data-act="save">파일</button><button type="button" data-act="del">삭제</button></div></div>`;
+  }).join('');
+  const total=items.reduce((s,x)=>s+x.size,0);
+  let quota=''; try{ if(navigator.storage&&navigator.storage.estimate){ const q=await navigator.storage.estimate(); if(q.quota) quota=` · 남은 공간 약 ${fmtBytes(q.quota-q.usage)}`; } }catch(e){}
+  $('recStore').textContent = items.length ? `녹음 ${items.length}개 · ${fmtBytes(total)}${quota}` : '';
+}
+$('recList').addEventListener('click', async e=>{
+  const b=e.target.closest('button[data-act]'); if(!b) return;
+  const row=b.closest('.rec-item'); const id=+row.dataset.id; const act=b.dataset.act;
+  if(act==='del'){
+    if(b.dataset.arm!=='1'){ b.dataset.arm='1'; b.textContent='정말 삭제'; setTimeout(()=>{ b.dataset.arm=''; b.textContent='삭제'; },3000); return; }
+    try{ await recDb('del', id); toast('삭제했어요'); }catch(x){} refreshRecList(); return;
+  }
+  let it; try{ it=await recDb('get', id); }catch(x){ return; }
+  if(!it) return;
+  const url=URL.createObjectURL(it.blob); recUrls.push(url);
+  if(act==='save'){
+    const d=new Date(it.ts); const name=`건반길잡이_${(it.song||'녹음').replace(/[\\/:*?"<>|]/g,'')}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.wav`;
+    const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast('파일로 내보냈어요');
+  } else {
+    let au=row.querySelector('audio');
+    if(!au){ au=document.createElement('audio'); au.controls=true; row.appendChild(au); }
+    au.src=url; au.play().catch(()=>{});
+  }
+});
+refreshRecList();
+if(navigator.mediaDevices){ fillRecDevices(); if(navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', fillRecDevices); }
+
 /* listen to the current step's notes only */
 $('listenBtn').addEventListener('click', async ()=>{
   if(!song) return; ensureAudio();
