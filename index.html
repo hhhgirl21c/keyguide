@@ -102,11 +102,19 @@ svg.kb{width:100%;height:160px;flex:none;display:block;touch-action:none;user-se
 @keyframes miss{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
 /* section finished */
-.summary{position:absolute;inset:auto 50% 50% auto;transform:translate(50%,50%);background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;display:grid;gap:10px;min-width:260px;z-index:3}
+.summary{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.45);padding:16px 18px;display:grid;gap:12px;width:min(440px, calc(100vw - 32px));box-sizing:border-box;z-index:20}
 .summary h3{margin:0;font-family:var(--serif);font-size:17px}
 .summary .figs{display:grid;grid-template-columns:repeat(4,auto);gap:4px 16px;font-size:11px;color:var(--muted)}
 .summary .figs b{display:block;font-family:var(--mono);font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
 .summary .row{justify-content:flex-end}
+.sum-top{display:flex;align-items:center;gap:14px}
+.sum-top .score{display:flex;align-items:baseline;gap:2px;flex:none} .sum-top .score b{font-family:var(--mono);font-size:42px;line-height:1;font-variant-numeric:tabular-nums} .sum-top .score small{font-size:13px;color:var(--muted)}
+.sum-ttl p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.sum-bars{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:6px 10px;align-items:center;font-size:12px}
+.sum-bars .lb{color:var(--muted)} .sum-bars .bar{height:8px;border-radius:4px;background:var(--line-2);overflow:hidden} .sum-bars .bar i{display:block;height:100%;background:var(--ink);border-radius:4px}
+.sum-bars .vl{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;min-width:72px}
+.sum-note{margin:0;font-size:12px;color:var(--muted);max-width:320px}
+.opt.tempo .tempo-ctl{display:flex;align-items:center;gap:8px;flex:none;width:46%} .opt.tempo input[type=range]{flex:1;min-width:0;accent-color:var(--ink)} .opt.tempo b{font-family:var(--mono);font-size:13px;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
 
 /* what the hands actually pressed: a slim strip under the stage */
 .pressed{display:flex;flex-direction:column;gap:6px;padding-inline:2px}
@@ -225,8 +233,9 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
     <div class="prog" aria-hidden="true" title="구간 진행"><i id="progFill"></i></div>
     <svg class="kb" id="kbTop" viewBox="0 0 1248 150" preserveAspectRatio="none" aria-label="쳐야 할 건반"></svg>
     <div class="summary" id="summary" hidden role="status">
-      <h3>구간을 끝까지 쳤어요</h3>
-      <div class="figs"><span>맞음<b id="sumOk">0</b></span><span>틀림<b id="sumBad">0</b></span><span>정확도<b id="sumAcc">–</b></span><span>양손 시차<b id="sumGap">–</b></span></div>
+      <div class="sum-top"><div class="score"><b id="sumScore">–</b><small>점</small></div><div class="sum-ttl"><h3>구간을 끝까지 쳤어요</h3><p id="sumSub"></p></div></div>
+      <div class="sum-bars" id="sumBars"></div>
+      <p class="sum-note" id="sumNote"></p>
       <div class="row"><button type="button" id="sumClose">계속</button></div>
     </div>
   </section>
@@ -249,6 +258,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
         <h3>연습</h3>
         <label class="opt"><span>구간 반복<small>구간 끝에서 처음으로 돌아가요</small></span><input type="checkbox" class="tg" id="loopChk" checked></label>
         <label class="opt"><span>꾸밈음 포함</span><input type="checkbox" class="tg" id="graceChk" checked></label>
+        <label class="opt tempo"><span>연습 템포<small id="tempoHint">악보 템포 그대로</small></span><span class="tempo-ctl"><input type="range" id="tempoRange" min="40" max="120" step="5" value="100" aria-label="연습 템포 (악보 템포 대비 %)"><b id="tempoVal">100%</b></span></label>
       </section>
       <section class="set">
         <h3>표시</h3>
@@ -285,7 +295,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       <h3>이번 연습</h3>
       <div class="figs-full">
         <span>진행<b id="fProg">0 / 0</b></span><span>맞음<b id="fOk">0</b></span><span>틀림<b id="fBad">0</b></span>
-        <span>양손 시차 평균<b id="fGap">–</b></span><span>확인 표시<b id="fMarks">0</b></span><span>저장<b id="dbText" style="font-size:13px;font-family:var(--sans)">확인 중</b></span>
+        <span>양손 시차 평균<b id="fGap">–</b></span><span>최근 점수<b id="fScores">–</b></span><span>확인 표시<b id="fMarks">0</b></span><span>저장<b id="dbText" style="font-size:13px;font-family:var(--sans)">확인 중</b></span>
       </div>
       <div class="row"><button type="button" id="restartBtn">처음부터 (기록 초기화)</button></div>
     </section>
@@ -296,6 +306,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       <p class="help">악보는 종이 악보와 같은 줄 나눔으로 한 줄씩 보여주고, 현재 줄 안에서 커서만 움직입니다(좁은 화면에서는 한 줄을 나눠서). 악보를 왼쪽으로 쓸면 다음 마디, 오른쪽으로 쓸면 이전 마디로 가고, 음표를 누르면 그 자리로 바로 갑니다. 음이름(계이름)은 설정에서 한글/영어와 악보에 표시할 범위를 고를 수 있고, 조표에 따라 미♯·시♭처럼 악보에 적힌 대로 읽습니다.</p>
       <p class="help">「이 음」과 「전체」 재생은 피아노가 USB로 연결돼 있으면 피아노로 음을 보내서 피아노 스피커로 울리고(페달 기호도 서스테인 신호로 함께), 연결이 없으면 앱에 내장된 피아노 음원(FluidR3 그랜드피아노 샘플, MIT 라이선스)으로 재생합니다. 설정의 「재생 소리」에서 바꿀 수 있어요.</p>
       <p class="help">「녹음」은 피아노가 USB로 연결돼 있을 때 피아노 소리를 그 케이블로 받아 녹음합니다(P-225의 USB 오디오). 녹음 중에는 입력 이름과 레벨이 아래 메시지 줄에 보이고, 다시 누르면 멈추면서 이 기기(브라우저 저장소)에 저장돼요. 설정 › 녹음에서 듣기·파일(.wav)로 내보내기·삭제를 할 수 있고, 입력이 피아노가 아니라 태블릿 마이크로 잡히면 「녹음 입력」에서 바꿔 보세요.</p>
+      <p class="help">구간을 끝까지 치면 점수가 나옵니다. 정확도 50점(맞음/틀림), 리듬 25점(악보의 음 간격과 비교해 고르게 쳤는지 — 느려도 고르면 높음), 템포 15점(연습 템포에 얼마나 가까운 빠르기로 쳤는지), 양손 10점(두 손이 함께 칠 자리의 시차). 틀린 뒤의 간격과 1.5초 넘게 선 「멈춤」은 리듬·템포에서 빼고 따로 세며, 평소보다 30% 이상 느려진 마디를 알려줍니다. 설정의 「연습 템포」(악보 템포의 40~120%)는 곡마다 기억되고, 「전체」 재생도 그 템포로 울립니다.</p>
       <p class="help" id="pedalNote"></p>
       <p class="help" id="modeNote"></p>
       <pre class="help" id="diagText"></pre>
@@ -457,7 +468,20 @@ function unitsPerWhole(){ if(song?.upw) return song.upw; const u=song?.unit; ret
 function barMeter(b){ return (b&&b.meter) || [song?.beats_per_bar||4, 4]; }
 function beatUnits(b){ const [n,d]=barMeter(b); const u=unitsPerWhole()/d; return (d===8 && n%3===0 && n>3) ? u*3 : u; }
 function barObj(bar){ return song?.bars.find(x=>x.bar===bar); }
-function unitSec(b){ return 60/((b&&b.tempo)||song.tempo||120)/beatUnits(b); }
+function unitSec(b){ return 60/((b&&b.tempo)||song.tempo||120)/beatUnits(b) * (100/tempoPct); }
+/* practice tempo (v63): a percentage of the printed tempo, kept per song on this device; playback, the step clock and
+   the pass score all run at this tempo */
+let tempoPct=100, tempoStore={};
+try{ tempoStore=JSON.parse(localStorage.getItem('kg.tempo')||'{}'); }catch(e){}
+function printedTempo(){ return song ? (song.tempo||(song.bars[0]&&song.bars[0].tempo)||120) : 120; }
+function practiceTempo(){ return Math.round(printedTempo()*tempoPct/100); }
+function applyTempo(pct, save){
+  tempoPct=Math.max(40, Math.min(120, pct||100));
+  $('tempoRange').value=tempoPct; $('tempoVal').textContent=tempoPct+'%';
+  $('tempoHint').textContent = tempoPct===100 ? `악보 템포 그대로 (♩=${printedTempo()})` : `악보 ♩=${printedTempo()} → 연습 ♩=${practiceTempo()}`;
+  if(song) $('songSub').textContent = `${song.subtitle||song.title} · ♩=${song.tempo}` + (tempoPct!==100 ? ` · 연습 ♩=${practiceTempo()} (${tempoPct}%)` : '');
+  if(save && song){ tempoStore[song.id]=tempoPct; try{ localStorage.setItem('kg.tempo', JSON.stringify(tempoStore)); }catch(e){} }
+}
 let barStart={};   // bar number -> absolute position in units (bars may differ in length: pickups, final bar)
 function indexBars(){ barStart={}; let p=0; if(!song) return; for(const b of song.bars){ barStart[b.bar]=p; p+=b.units||unitsPerBar(); } }
 function posOfStep(st){ return (barStart[st.bar]??0) + st.t; }
@@ -483,7 +507,7 @@ function rebuild(keepPos){
   const [a,b]=range();
   steps = flatten(song).filter(s=>s.bar>=a && s.bar<=b);
   if(!keepPos || idx>=steps.length) idx=0;
-  pressedSince.clear(); handTimes={}; pass={ok:0,bad:0,gaps:[]};
+  pressedSince.clear(); handTimes={}; resetPass();
   fitView(); render();
 }
 function render(){
@@ -772,14 +796,89 @@ function setMsg(text, cls){ const m=$('msg'); m.textContent=text; m.className='m
 
 /* ---------- judging ---------- */
 let pass={ok:0,bad:0,gaps:[]}, sumTimer=null;
+let passTimes=[], stepMiss=false;   // v63: completion time of each step in this pass (steps reached by playing, not by jumping)
+function resetPass(){ pass={ok:0,bad:0,gaps:[]}; passTimes=[]; stepMiss=false; }
+/* pass score (v63): accuracy 50 + rhythm 25 + tempo 15 + hands 10.
+   intervals between consecutively played steps are compared with the score's own intervals at the practice tempo;
+   the achieved tempo is the median of expected/actual, rhythm is the spread that remains once that tempo is taken out,
+   so a slow but even pass still scores well on rhythm. Intervals after a wrong note and long stops (pauses) are left
+   out of tempo and rhythm; pauses are counted and the bars they fell in are named. */
+function stepSeconds(){   // absolute seconds of every step at the current practice tempo
+  const secAt={}; let acc=0;
+  for(const bb of song.bars){ secAt[bb.bar]=acc; acc+=(bb.units||unitsPerBar())*unitSec(bb); }
+  return steps.map(st=>secAt[st.bar]+st.t*unitSec(barObj(st.bar)));
+}
+function scorePass(){
+  const n=pass.ok+pass.bad, acc=n?pass.ok/n:0;
+  const sec=stepSeconds(); const iv=[];
+  const byI={}; for(const p of passTimes) byI[p.i]=p;
+  for(const p of passTimes){
+    const q=byI[p.i-1]; if(!q) continue;                         // previous step was not played right before this one
+    const exp=sec[p.i]-sec[p.i-1], act=(p.t-q.t)/1000;
+    if(!(exp>0) || !(act>0)) continue;
+    iv.push({i:p.i, bar:steps[p.i].bar, exp, act, miss:p.miss});
+  }
+  const clean=iv.filter(x=>!x.miss);
+  const pauses=clean.filter(x=>x.act>2.5*x.exp && x.act>1.5);
+  const used=clean.filter(x=>!pauses.includes(x));
+  const med=a=>{ const b=[...a].sort((x,y)=>x-y); return b.length ? (b.length%2 ? b[(b.length-1)/2] : (b[b.length/2-1]+b[b.length/2])/2) : NaN; };
+  const f=used.length>=4 ? med(used.map(x=>x.exp/x.act)) : NaN;         // achieved tempo as a fraction of the practice tempo
+  let rhythm=NaN, slow=[];
+  if(used.length>=4){
+    const devs=used.map(x=>Math.abs(Math.log2(x.act*f/x.exp)));
+    rhythm=devs.reduce((a,d)=>a+Math.max(0,Math.min(1,1-(d-0.1)/0.5)),0)/devs.length;
+    const perBar={}; for(const x of used){ (perBar[x.bar]=perBar[x.bar]||[]).push(x.act*f/x.exp); }
+    for(const x of pauses){ (perBar[x.bar]=perBar[x.bar]||[]).push(9); }
+    slow=Object.keys(perBar).map(Number).filter(b=>{ const a=perBar[b]; return a.reduce((p,q)=>p+q,0)/a.length>1.3; }).sort((a,b)=>a-b);
+  }
+  const gaps=pass.gaps.map(Math.abs); const gap=gaps.length ? gaps.reduce((a,b)=>a+b,0)/gaps.length : NaN;
+  const tempoS=isNaN(f)?NaN:Math.max(0,Math.min(1,(Math.min(f,1.2)-0.5)/0.45));
+  const syncS=isNaN(gap)?NaN:Math.max(0,Math.min(1,1-(gap-30)/120));
+  // weights: a part that could not be measured hands its weight to the others
+  const parts=[['정확도',acc,50],['리듬',rhythm,25],['템포',tempoS,15],['양손',syncS,10]];
+  const wsum=parts.reduce((a,p)=>a+(isNaN(p[1])?0:p[2]),0);
+  const total=wsum ? Math.round(parts.reduce((a,p)=>a+(isNaN(p[1])?0:p[1]*p[2]),0)/wsum*100) : 0;
+  return {total, acc, rhythm, tempoS, syncS, f, gap, pauses:pauses.length, slow, n:used.length, parts};
+}
+const SCORE_KEY='kg.scores';
+function scoreHistory(){ try{ return JSON.parse(localStorage.getItem(SCORE_KEY)||'{}'); }catch(e){ return {}; } }
+function pushScore(r){
+  if(!song) return [];
+  const h=scoreHistory(); const list=(h[song.id]=h[song.id]||[]);
+  const [a,b]=range(); list.push({ts:Date.now(), bars:a+'-'+b, hand, pct:tempoPct, score:r.total});
+  while(list.length>30) list.shift();
+  try{ localStorage.setItem(SCORE_KEY, JSON.stringify(h)); }catch(e){}
+  return list;
+}
+function refreshScoreFig(){
+  const list=song ? (scoreHistory()[song.id]||[]) : [];
+  $('fScores').textContent = list.length ? list.slice(-5).reverse().map(x=>x.score).join(' · ') : '–';
+}
+function rangesOf(bars){ const out=[]; for(const b of bars){ const last=out[out.length-1]; if(last && b===last[1]+1) last[1]=b; else out.push([b,b]); } return out.map(([x,y])=>x===y?String(x):`${x}–${y}`).join(', '); }
 function hideSummary(){ $('summary').hidden=true; clearTimeout(sumTimer); }
 function showSummary(){
-  const n=pass.ok+pass.bad;
-  $('sumOk').textContent=pass.ok; $('sumBad').textContent=pass.bad;
-  $('sumAcc').textContent = n ? Math.round(pass.ok/n*100)+'%' : '–';
-  if(pass.gaps.length){ const a=pass.gaps.reduce((x,y)=>x+y,0)/pass.gaps.length; $('sumGap').textContent=(a>=0?'+':'')+Math.round(a)+'ms'; } else $('sumGap').textContent='–';
-  $('summary').hidden=false; clearTimeout(sumTimer); sumTimer=setTimeout(hideSummary, 7000);
-  pass={ok:0,bad:0,gaps:[]};
+  const r=scorePass();
+  const prev=(song && (scoreHistory()[song.id]||[]).slice(-1)[0]) || null;
+  const list=pushScore(r);
+  $('sumScore').textContent=r.total;
+  $('sumSub').textContent = `맞음 ${pass.ok} · 틀림 ${pass.bad}` + (prev ? ` · 지난번 ${prev.score}점 (${r.total-prev.score>=0?'+':''}${r.total-prev.score})` : '');
+  const pct=v=>isNaN(v)?0:Math.round(v*100);
+  const vals={
+    '정확도': `${pct(r.acc)}%`,
+    '리듬': isNaN(r.rhythm) ? '–' : `${pct(r.rhythm)}%`,
+    '템포': isNaN(r.f) ? '–' : `♩=${Math.round(practiceTempo()*r.f)} (${Math.round(r.f*100)}%)`,
+    '양손': isNaN(r.gap) ? '–' : `${Math.round(r.gap)}ms`,
+  };
+  $('sumBars').innerHTML = r.parts.map(([lb,v,w])=>`<span class="lb">${lb} <small>${w}</small></span><span class="bar"><i style="width:${pct(v)}%"></i></span><span class="vl">${vals[lb]}</span>`).join('');
+  const notes=[];
+  if(tempoPct!==100) notes.push(`연습 템포 ${tempoPct}% (♩=${practiceTempo()}) 기준`);
+  if(isNaN(r.f)) notes.push('이어서 친 음이 적어 리듬·템포는 재지 못했어요');
+  if(r.pauses) notes.push(`멈춤 ${r.pauses}번`);
+  if(r.slow.length) notes.push(`느려진 마디 ${rangesOf(r.slow)}`);
+  $('sumNote').textContent=notes.join(' · ');
+  $('summary').hidden=false; clearTimeout(sumTimer); sumTimer=setTimeout(hideSummary, 12000);
+  refreshScoreFig();
+  resetPass();
 }
 function noteOn(m){
   held.add(m); paint(botKeys,m,'var(--ok)');
@@ -794,6 +893,7 @@ function noteOn(m){
     }
     if(cur.all.every(x=>pressedSince.has(x))){
       if(cur.rh.length && cur.lh.length && handTimes.rh!==undefined && handTimes.lh!==undefined){ stats.gaps.push(handTimes.rh - handTimes.lh); pass.gaps.push(handTimes.rh - handTimes.lh); }
+      passTimes.push({i:idx, t:now, miss:stepMiss}); stepMiss=false;   // v63: when this step was completed, for the pass score
       advance(1); return;
     }
     setMsg(`${nameOf(m,true)} 맞음 — 나머지 ${cur.all.filter(x=>!pressedSince.has(x)).map(x=>nameOf(x,true)).join(', ')}`, 'ok');
@@ -804,13 +904,13 @@ function noteOn(m){
     // step only advances once both hands play it correctly together (even a key still held must be struck again)
     const both = cur.rh.length && cur.lh.length;
     setMsg(`${nameOf(m,true)} 아님 — ${both?'양손 모두 ':''}다시: ${cur.all.map(x=>nameOf(x,true)).join(', ')}`, 'bad');
-    pressedSince.clear(); handTimes={};
+    pressedSince.clear(); handTimes={}; stepMiss=true;
   }
   render();
 }
 function noteOff(m){ held.delete(m); paint(botKeys,m,null); }
 function advance(d){
-  idx+=d;
+  idx+=d; stepMiss=false;
   if(idx>=steps.length){
     if(pass.ok+pass.bad>0) showSummary();
     if($('loopChk').checked && steps.length){ idx=0; setMsg('구간 끝 — 처음부터 다시','ok'); }
@@ -823,7 +923,7 @@ function advance(d){
 function jumpTo(i){
   if(playing) stopPlay();
   idx=Math.max(0, Math.min(steps.length-1, i));
-  pressedSince.clear(); handTimes={}; hideSummary(); setMsg(''); render();
+  pressedSince.clear(); handTimes={}; stepMiss=false; hideSummary(); setMsg(''); render();
 }
 function stepAt(bar, t){   // index of the step at (bar,t), else the first step at or after that position
   let i=steps.findIndex(s=>s.bar===bar && s.t===t); if(i>=0) return i;
@@ -1295,7 +1395,7 @@ $('playBtn').addEventListener('click', async ()=>{
     if(clockNow(out)-t0 > total+0.3){ stopPlay(); setMsg('재생 끝',''); return; }
     playing.timer=setTimeout(tick, out ? 40 : 60);
   };
-  setMsg(`마디 ${startBar}~${b} 재생 중 (♩=${(barObj(startBar)&&barObj(startBar).tempo)||song.tempo})` + (out ? ' · 피아노에서 울려요' : ''),'');
+  setMsg(`마디 ${startBar}~${b} 재생 중 (♩=${Math.round(((barObj(startBar)&&barObj(startBar).tempo)||song.tempo)*tempoPct/100)}${tempoPct!==100?`, 연습 템포 ${tempoPct}%`:''})` + (out ? ' · 피아노에서 울려요' : ''),'');
   tick();
 });
 
@@ -1306,6 +1406,7 @@ $('handSeg').addEventListener('click', e=>{
   for(const x of $('handSeg').querySelectorAll('button')) x.setAttribute('aria-pressed', x===b?'true':'false');
   rebuild(false);
 });
+$('tempoRange').addEventListener('input', ()=>{ if(playing) stopPlay(); applyTempo(+$('tempoRange').value, true); });
 $('barFrom').addEventListener('change', ()=>rebuild(false));
 $('barTo').addEventListener('change', ()=>rebuild(false));
 let resetArmed=null;
@@ -1321,7 +1422,7 @@ $('resetFingerBtn').addEventListener('click', async ()=>{
   rebuild(true); refreshResetBtn(); toast('이 곡의 운지를 원본으로 되돌렸습니다');
 });
 $('restartBtn').addEventListener('click', ()=>{ stats={ok:0,bad:0,gaps:[]}; idx=0; rebuild(false); setMsg(''); closeSheet(); });
-$('homeBtn').addEventListener('click', ()=>{ stopPlay(); idx=0; pressedSince.clear(); handTimes={}; pass={ok:0,bad:0,gaps:[]}; hideSummary(); setMsg(''); render(); });
+$('homeBtn').addEventListener('click', ()=>{ stopPlay(); idx=0; pressedSince.clear(); handTimes={}; resetPass(); hideSummary(); setMsg(''); render(); });
 $('sumClose').addEventListener('click', hideSummary);
 $('prevBtn').addEventListener('click', ()=>advance(-1));
 $('nextBtn').addEventListener('click', ()=>advance(1));
@@ -1368,6 +1469,7 @@ function loadSong(id){
   const last = song.bars[song.bars.length-1].bar, first = song.bars[0].bar;
   $('barFrom').min=first; $('barTo').min=first; $('barFrom').max=last; $('barTo').max=last; $('barFrom').value=first; $('barTo').value=last;
   indexBars();
+  applyTempo(tempoStore[id]||100, false); refreshScoreFig();
   stats={ok:0,bad:0,gaps:[]}; idx=0; rebuild(false);
   try{ localStorage.setItem('kg.song', id); }catch(e){}
 }
