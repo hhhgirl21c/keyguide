@@ -323,7 +323,10 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       <section class="set" id="recSet">
         <h3>녹음</h3>
         <label class="opt"><span>녹음 입력<small>P-225는 USB 케이블로 소리도 보내요. 자동: USB·피아노 이름의 입력을 먼저 고릅니다</small></span><select id="recDevSel"><option value="auto">자동</option></select></label>
-        <p class="help" id="recInfo">위의 「녹음」 버튼으로 시작하고 다시 누르면 멈춰요. 녹음은 이 기기에만 저장됩니다.</p>
+        <label class="opt"><span>녹음 방식<small>원음: 소리를 손대지 않고 받아요. 통화 방식: 태블릿이 원음으로는 USB 입력을 못 잡을 때 써요. 「입력 점검」이 알아서 골라 줍니다</small></span><select id="recModeSel"><option value="raw">원음</option><option value="comm">통화 방식</option></select></label>
+        <div class="row"><button type="button" id="recTestBtn">입력 점검</button><small style="color:var(--muted)">피아노를 연결한 채 누르면 피아노가 도·미·솔을 몇 번 울리고, 소리가 실제로 들어오는 입력을 찾아 골라요(약 20초)</small></div>
+        <pre class="help" id="recTestOut" hidden></pre>
+        <p class="help" id="recInfo">위의 「녹음」 버튼으로 시작하고 다시 누르면 멈춰요. 녹음은 이 기기에만 저장됩니다. 피아노가 USB로 연결돼 있으면 「듣기」 소리는 태블릿이 아니라 피아노(스피커·헤드폰)에서 나요.</p>
         <div id="recList"></div>
         <div class="row"><small id="recStore" style="color:var(--muted)"></small></div>
       </section>
@@ -1329,8 +1332,23 @@ function midiSilence(out){
 const REC_MAX = 15*60;   // seconds; auto-stop so the PCM chunks cannot eat the tablet's memory
 let rec = null;           // {stream, src, node, analyser, chunks:[], ch, rate, t0, timer, meter, ok0, bad0}
 let recDevice = 'auto';
-try{ recDevice = JSON.parse(localStorage.getItem('kg.rec')||'{}').device || 'auto'; }catch(e){}
-function saveRecPref(){ try{ localStorage.setItem('kg.rec', JSON.stringify({device:recDevice})); }catch(e){} }
+/* v79: capture mode. On Android Chrome the input route depends on whether echo cancellation is requested:
+   without it ('raw') the stream uses a camcorder/generic preset outside communication mode and the device chosen in
+   the list is not applied (older builds take the built-in microphone even with a USB interface attached); with it
+   ('comm') Chrome switches to communication mode and routes to the chosen communication device (USB audio). Neither
+   is right everywhere, so both are offered and the input check below measures which one really carries sound. */
+let recMode = 'raw';
+try{ const rp=JSON.parse(localStorage.getItem('kg.rec')||'{}'); recDevice = rp.device || 'auto'; recMode = rp.mode==='comm' ? 'comm' : 'raw'; }catch(e){}
+function saveRecPref(){ try{ localStorage.setItem('kg.rec', JSON.stringify({device:recDevice, mode:recMode})); }catch(e){} }
+function recConstraints(mode, dev){
+  const c={echoCancellation: mode==='comm', noiseSuppression:false, autoGainControl:false, channelCount:{ideal:2}, sampleRate:{ideal:44100}};
+  if(dev) c.deviceId={exact:dev.deviceId};
+  return c;
+}
+const REC_MODE_KO={raw:'원음', comm:'통화 방식'};
+const dbOf = v => v>0 ? 20*Math.log10(v) : -120;
+const dbText = db => db<=-70 ? '무음' : '최대 '+Math.round(db)+' dB';
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const WORKLET_SRC = `class R extends AudioWorkletProcessor{
   constructor(){ super(); this.ch=0; this.buf=null; this.pos=0; this.port.onmessage=()=>{ this.flush(); this.port.postMessage({flushed:true}); }; }
   flush(){ if(this.pos){ const b=this.buf.slice(0,this.pos); this.port.postMessage({ch:this.ch, buf:b.buffer}, [b.buffer]); this.pos=0; } }
@@ -1365,6 +1383,84 @@ async function fillRecDevices(){
   sel.value = list.some(d=>d.deviceId===recDevice) ? recDevice : 'auto';
 }
 $('recDevSel').addEventListener('change', ()=>{ recDevice=$('recDevSel').value; saveRecPref(); });
+$('recModeSel').value=recMode;
+$('recModeSel').addEventListener('change', ()=>{ recMode=$('recModeSel').value==='comm'?'comm':'raw'; saveRecPref(); });
+/* ---------- input check (v79) ----------
+   Which input really carries the piano? Every capture mode x listed input is opened in turn for about two seconds:
+   first the level with nothing sounding (floor), then the level while a C major chord sounds — sent to the piano over
+   MIDI when it is connected, otherwise the player keeps playing. A combination counts when the chord stands clear of
+   the floor; a floor near digital silence means the sound arrives over the cable (USB) rather than through a
+   microphone. The best one is selected: sound > over the cable > unprocessed > louder. The table stays on the sheet. */
+let recTesting=false;
+async function probeInput(mode, dev, out){
+  const res={mode, dev: dev?dev.deviceId:'auto', label: dev?(dev.label||'입력'):'기본값'};
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({audio: recConstraints(mode, dev)}); }
+  catch(e){ res.err=e.name||'오류'; return res; }
+  const track=stream.getAudioTracks()[0]; const st=track.getSettings ? track.getSettings() : {};
+  res.got=track.label||''; res.ch=st.channelCount; res.muted=!!track.muted;
+  const src=actx.createMediaStreamSource(stream), an=actx.createAnalyser(), sink=actx.createGain();
+  an.fftSize=2048; sink.gain.value=0; src.connect(an); an.connect(sink).connect(actx.destination);
+  const buf=new Float32Array(an.fftSize);
+  const measure=async ms=>{ let pk=0; const end=performance.now()+ms;
+    while(performance.now()<end){ an.getFloatTimeDomainData(buf); for(let i=0;i<buf.length;i++){ const v=buf[i]<0?-buf[i]:buf[i]; if(v>pk) pk=v; } await sleep(40); }
+    return pk; };
+  try{
+    await sleep(700);                                   // Android switches the audio mode / route here
+    res.floor=await measure(350);
+    if(out){ const now=performance.now(); for(const m of [60,64,67]){ try{ out.send([0x90,m,76], now); out.send([0x80,m,0], now+700); }catch(e){} } }
+    res.peak=await measure(950);
+    await sleep(200);
+  } finally {
+    try{ src.disconnect(); an.disconnect(); sink.disconnect(); }catch(e){}
+    for(const t of stream.getTracks()) t.stop();
+  }
+  await sleep(350);
+  return res;
+}
+async function testInputs(){
+  if(recTesting) return;
+  if(rec){ toast('녹음 중에는 점검할 수 없어요'); return; }
+  const box=$('recTestOut'), btn=$('recTestBtn'); box.hidden=false;
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ box.textContent='이 브라우저에서는 녹음을 쓸 수 없어요.'; return; }
+  recTesting=true; btn.disabled=true; ensureAudio(); if(typeof stopPlay==='function') stopPlay();
+  try{
+    try{ const s0=await navigator.mediaDevices.getUserMedia({audio:true}); for(const t of s0.getTracks()) t.stop(); }
+    catch(e){ box.textContent = e.name==='NotAllowedError' ? '오디오 입력 권한이 필요해요. 주소창의 자물쇠 → 마이크 허용 뒤 다시 눌러 주세요.' : '입력을 열지 못했어요: '+(e.name||'')+' '+(e.message||''); return; }
+    await sleep(300);
+    const list=await listAudioInputs(); fillRecDevices();
+    const devs = list.length ? list.slice(0,5) : [null];     // as listed ("기본값" included), so the take uses exactly what was measured
+    const out=midiOut; const rows=[]; const total=devs.length*2;
+    for(const mode of ['raw','comm']) for(const dev of devs){
+      box.textContent=`점검 중 ${rows.length+1}/${total} — ${REC_MODE_KO[mode]} · ${dev?(dev.label||'입력'):'기본값'}` + (out ? '\n피아노가 도·미·솔을 울려요. 그대로 두세요.' : '\n피아노가 연결돼 있지 않아요 — 끝날 때까지 건반을 계속 쳐 주세요.');
+      rows.push(await probeInput(mode, dev, out));
+    }
+    if(out){ try{ midiSilence(out); }catch(e){} }
+    for(const r of rows){
+      if(r.err) continue;
+      r.pdb=dbOf(r.peak); r.fdb=dbOf(r.floor);
+      r.sound = out ? (r.peak>0.004 && r.peak>r.floor*2.5) : r.peak>0.01;      // the chord stands clear of the floor
+      r.direct = r.sound && r.floor<0.0004;                                     // nothing but the instrument: over the cable
+    }
+    const rank=r=>(r.sound?1000:0)+(r.direct?100:0)+(r.mode==='raw'?10:0)+Math.max(0,Math.min(9,(r.pdb+60)/7));
+    const ok=rows.filter(r=>!r.err && r.sound).sort((a,b)=>rank(b)-rank(a)); const best=ok[0]||null;
+    // two short lines per combination: the settings sheet is narrow
+    const dbS=d=>d<=-100?'0':Math.round(d)+' dB';
+    const lines=rows.map(r=>`${r===best?'▶':'·'} ${REC_MODE_KO[r.mode]} · ${r.label.slice(0,26)}\n   ` +
+      (r.err ? `열지 못함 (${r.err})` : `조용 ${dbS(r.fdb)} · 화음 ${dbS(r.pdb)} → ${r.sound?(r.direct?'케이블로 들어옴':'마이크로 들어옴'):(r.muted?'무음(입력 막힘)':'소리 없음')}`));
+    let head;
+    if(best){
+      recMode=best.mode; recDevice=best.dev; saveRecPref(); $('recModeSel').value=recMode; await fillRecDevices();
+      head=`소리가 들어오는 입력을 찾아 골랐어요: ${REC_MODE_KO[best.mode]} · ${best.label}` + (best.direct ? ' (피아노 소리가 케이블로 직접 들어와요)' : ' (마이크로 들어와요 — 주변 소리도 함께 녹음돼요)') + '\n이제 「녹음」을 누르면 이 설정으로 녹음해요.';
+    } else {
+      head='어느 입력에서도 소리가 잡히지 않았어요.\n· 피아노 전원·USB 케이블, 「피아노 연결」 상태를 확인해 주세요' + (out ? '' : ' (피아노가 연결돼 있지 않아 직접 치셔야 해요)') +
+           '\n· 태블릿 설정 › 보안 및 개인정보 › 「마이크 접근」이 꺼져 있으면 모든 입력이 무음이에요\n· 아래 표를 그대로 알려 주시면 원인을 더 좁힐 수 있어요';
+    }
+    box.textContent=head+'\n\n'+lines.join('\n')+(out?'':'\n(피아노 미연결: 직접 친 소리로 쟀어요)');
+    toast(best ? '녹음 입력을 골랐어요' : '소리가 잡히지 않았어요');
+  } finally { recTesting=false; btn.disabled=false; }
+}
+$('recTestBtn').addEventListener('click', testInputs);
 function recChunk(ch, buf){
   if(!rec) return;
   if(rec.ch===0) rec.ch=ch;
@@ -1374,6 +1470,8 @@ function recChunk(ch, buf){
     for(let i=0;i<n;i++) for(let c=0;c<rec.ch;c++) b[i*rec.ch+c]=a[i*ch+Math.min(c,ch-1)];
     a=b;
   }
+  let pk=rec.peak; for(let i=0;i<a.length;i++){ const v=a[i]<0?-a[i]:a[i]; if(v>pk) pk=v; }   // v79: loudest sample, to tell a silent take
+  rec.peak=pk;
   rec.chunks.push(a.buffer); rec.frames += a.length/rec.ch;
 }
 function wavBlob(chunks, ch, rate, frames){
@@ -1388,11 +1486,11 @@ async function startRec(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setMsg('이 브라우저에서는 녹음을 쓸 수 없어요. Chrome의 GitHub Pages 판에서 열어 주세요.','bad'); return; }
   ensureAudio();
   let list=await listAudioInputs(); let dev=pickDevice(list);
-  const base={echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:{ideal:2}, sampleRate:{ideal:44100}};
+  const mode=recMode;
   let stream;
   try{
-    try{ stream = await navigator.mediaDevices.getUserMedia({audio: dev ? {...base, deviceId:{exact:dev.deviceId}} : base}); }
-    catch(e){ if(dev && e.name==='OverconstrainedError'){ stream = await navigator.mediaDevices.getUserMedia({audio: base}); } else throw e; }
+    try{ stream = await navigator.mediaDevices.getUserMedia({audio: recConstraints(mode, dev)}); }
+    catch(e){ if(dev && e.name==='OverconstrainedError'){ stream = await navigator.mediaDevices.getUserMedia({audio: recConstraints(mode, null)}); } else throw e; }
   }catch(e){
     console.warn(e);
     const why = e.name==='NotAllowedError' ? (embedded ? '이 화면(claude.ai 틀 안)에서는 녹음 권한이 막혀 있어요 — GitHub Pages 판에서 써 주세요.' : '오디오 입력 권한이 필요해요. 주소창의 자물쇠 → 마이크 허용 뒤 다시 눌러 주세요.')
@@ -1415,7 +1513,7 @@ async function startRec(){
       recChunk(ch, out.buffer); };
   }
   src.connect(node); node.connect(sink).connect(actx.destination);
-  rec={stream, src, node, analyser, sink, chunks:[], ch:0, frames:0, rate:actx.sampleRate, t0:performance.now(), label, ok0:stats.ok, bad0:stats.bad,
+  rec={stream, src, node, analyser, sink, chunks:[], ch:0, frames:0, peak:0, mode, rate:actx.sampleRate, t0:performance.now(), label, ok0:stats.ok, bad0:stats.bad,
        songTitle: song ? song.title : '', bars: song ? ($('barFrom').value+'–'+$('barTo').value) : ''};
   track.onended=()=>{ if(rec) stopRec('입력이 끊겨 녹음을 멈췄어요'); };
   const pill=$('recPill'); pill.classList.add('on'); pill.setAttribute('aria-pressed','true');
@@ -1425,10 +1523,13 @@ async function startRec(){
     const s=(performance.now()-rec.t0)/1000; $('recText').textContent=recTime(s);
     analyser.getFloatTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++) sum+=buf[i]*buf[i];
     const db=20*Math.log10(Math.sqrt(sum/buf.length)+1e-6); const lvl=Math.max(0,Math.min(6,Math.round((db+60)/9)));
-    setMsg(`녹음 중 ${recTime(s)} · 입력 ${label} · ${rec.rate/1000}kHz ${rec.ch||'?'}ch · 레벨 ${'■'.repeat(lvl)}${'□'.repeat(6-lvl)}${db>-1?' (클리핑)':''}`, 'ok');
+    // v79: nothing above the noise of a dead input after a few seconds — say so while it can still be fixed
+    const dead = s>4 && rec.peak<12;
+    setMsg(`녹음 중 ${recTime(s)} · 입력 ${label} · ${REC_MODE_KO[rec.mode]} · ${rec.rate/1000}kHz ${rec.ch||'?'}ch · 레벨 ${'■'.repeat(lvl)}${'□'.repeat(6-lvl)}${db>-1?' (클리핑)':''}` +
+           (dead ? ' · 아직 소리가 안 들어왔어요 — 건반을 쳐도 그대로면 설정 › 녹음 › 입력 점검' : ''), dead?'bad':'ok');
     if(s>=REC_MAX) stopRec('15분이 되어 녹음을 저장했어요');
   }, 150);
-  setMsg(`녹음 시작 · 입력 ${label}`,'ok');
+  setMsg(`녹음 시작 · 입력 ${label} · ${REC_MODE_KO[mode]}`,'ok');
 }
 async function stopRec(note){
   if(!rec || rec.stopping) return;
@@ -1445,8 +1546,13 @@ async function stopRec(note){
   const dur=r.frames/r.rate;
   if(r.frames<r.rate*0.5){ setMsg('녹음이 너무 짧아 저장하지 않았어요.','bad'); return; }
   const blob=wavBlob(r.chunks, r.ch||1, r.rate, r.frames);
-  const item={ts:Date.now(), song:r.songTitle, bars:r.bars, dur, rate:r.rate, ch:r.ch||1, size:blob.size, ok:stats.ok-r.ok0, bad:stats.bad-r.bad0, input:r.label, blob};
-  try{ await recDb('put', item); setMsg((note||'녹음을 저장했어요')+` · ${recTime(dur)} · ${fmtBytes(blob.size)} — 설정 › 녹음에서 들을 수 있어요`,'ok'); toast('녹음 저장 '+recTime(dur)); }
+  const peak=dbOf(r.peak/32768);
+  const item={ts:Date.now(), song:r.songTitle, bars:r.bars, dur, rate:r.rate, ch:r.ch||1, size:blob.size, ok:stats.ok-r.ok0, bad:stats.bad-r.bad0, input:r.label, mode:r.mode, peak, blob};
+  try{
+    await recDb('put', item);
+    if(peak<=-70){ setMsg(`녹음을 저장했지만 소리가 없어요(무음) · ${recTime(dur)} — 설정 › 녹음 › 「입력 점검」을 눌러 소리가 들어오는 입력을 찾아 주세요`,'bad'); toast('녹음에 소리가 없어요'); }
+    else { setMsg((note||'녹음을 저장했어요')+` · ${recTime(dur)} · ${dbText(peak)} · ${fmtBytes(blob.size)} — 설정 › 녹음에서 들을 수 있어요`,'ok'); toast('녹음 저장 '+recTime(dur)); }
+  }
   catch(e){ console.warn(e); setMsg('녹음을 저장하지 못했어요: '+(e.message||e),'bad'); }
   refreshRecList();
 }
@@ -1465,6 +1571,14 @@ function recDb(op, arg){
   });
 }
 let recUrls=[];
+const lvTag = db => db<=-70 ? '<b style="color:var(--bad)">무음 — 소리가 녹음되지 않았어요</b>' : (db<-45 ? `<b style="color:var(--warn)">${dbText(db)} (아주 작음)</b>` : dbText(db));
+/* v79: the loudest sample of a stored WAV (recordings made before v79 carry no level): 16-bit PCM after the 44-byte header */
+async function wavPeakDb(blob){
+  const buf=await blob.arrayBuffer(); const n=Math.floor((buf.byteLength-44)/2); if(n<=0) return -120;
+  const a=new Int16Array(buf, 44, n); const step=n>2e7?4:1; let pk=0;
+  for(let i=0;i<n;i+=step){ const v=a[i]<0?-a[i]:a[i]; if(v>pk) pk=v; }
+  return dbOf(pk/32768);
+}
 async function refreshRecList(){
   const box=$('recList'); for(const u of recUrls) URL.revokeObjectURL(u); recUrls=[];
   let items=[]; try{ items=await recDb('all'); }catch(e){ box.innerHTML='<p class="rec-empty">이 브라우저에서는 녹음 저장소를 열 수 없어요.</p>'; return; }
@@ -1473,7 +1587,7 @@ async function refreshRecList(){
   else box.innerHTML=items.map(it=>{
     const d=new Date(it.ts); const when=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     const judged = (it.ok+it.bad) ? ` · 맞음 ${it.ok} 틀림 ${it.bad}` : '';
-    return `<div class="rec-item" data-id="${it.id}"><div class="meta">${(it.song||'녹음').replace(/</g,'&lt;')} <span style="color:var(--muted)">${it.bars?'마디 '+it.bars:''}</span><small>${when} · ${recTime(it.dur)} · ${fmtBytes(it.size)} · ${it.input||''} ${it.rate/1000}kHz ${it.ch}ch${judged}</small></div>
+    return `<div class="rec-item" data-id="${it.id}"><div class="meta">${(it.song||'녹음').replace(/</g,'&lt;')} <span style="color:var(--muted)">${it.bars?'마디 '+it.bars:''}</span><small>${when} · ${recTime(it.dur)} · ${fmtBytes(it.size)} · ${it.input||''}${it.mode?' · '+REC_MODE_KO[it.mode]:''} ${it.rate/1000}kHz ${it.ch}ch${judged}<span class="lv">${it.peak===undefined?'':' · '+lvTag(it.peak)}</span></small></div>
       <div class="acts"><button type="button" data-act="play">듣기</button><button type="button" data-act="save">파일</button><button type="button" data-act="del">삭제</button></div></div>`;
   }).join('');
   const total=items.reduce((s,x)=>s+x.size,0);
@@ -1489,6 +1603,9 @@ $('recList').addEventListener('click', async e=>{
   }
   let it; try{ it=await recDb('get', id); }catch(x){ return; }
   if(!it) return;
+  if(it.peak===undefined){   // an older recording: measure it now, so a silent file is named as such instead of just playing nothing
+    try{ it.peak=await wavPeakDb(it.blob); await recDb('put', it); const lv=row.querySelector('.lv'); if(lv) lv.innerHTML=' · '+lvTag(it.peak); }catch(x){ console.warn(x); }
+  }
   const url=URL.createObjectURL(it.blob); recUrls.push(url);
   if(act==='save'){
     const d=new Date(it.ts); const name=`건반길잡이_${(it.song||'녹음').replace(/[\\/:*?"<>|]/g,'')}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.wav`;
