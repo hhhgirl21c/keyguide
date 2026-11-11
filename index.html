@@ -241,7 +241,7 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
     <span class="sub" id="songSub"></span>
     <button class="pill" id="statsPill" type="button" title="이 곡의 기록·통계" aria-label="이 곡의 기록·통계"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 20v-7M12 20V5M19 20v-11"/></svg><span class="lbl">통계</span></button>
     <button class="pill" id="midiPill" type="button"><span class="dot"></span><span id="midiText">피아노 연결</span></button>
-    <button class="pill rec" id="recPill" type="button" aria-pressed="false" title="피아노 소리 녹음 — 다시 누르면 멈춤"><span class="rdot"></span><span id="recText">녹음</span></button>
+    <button class="pill rec" id="recPill" type="button" aria-pressed="false" title="연주 녹음 — 다시 누르면 멈춤"><span class="rdot"></span><span id="recText">녹음</span></button>
     <button class="pill who" id="playerPill" type="button" title="연주자 바꾸기"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="playerText">달기</span></button>
     <button class="pill" id="menuBtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="lbl">설정</span></button>
   </header>
@@ -322,11 +322,14 @@ pre.help{white-space:pre-wrap;font-family:var(--mono);font-size:11px}
       </section>
       <section class="set" id="recSet">
         <h3>녹음</h3>
-        <label class="opt"><span>녹음 입력<small>P-225는 USB 케이블로 소리도 보내요. 자동: USB·피아노 이름의 입력을 먼저 고릅니다</small></span><select id="recDevSel"><option value="auto">자동</option></select></label>
-        <label class="opt"><span>녹음 방식<small>원음: 소리를 손대지 않고 받아요. 통화 방식: 태블릿이 원음으로는 USB 입력을 못 잡을 때 써요. 「입력 점검」이 알아서 골라 줍니다</small></span><select id="recModeSel"><option value="raw">원음</option><option value="comm">통화 방식</option></select></label>
+        <label class="opt"><span>녹음 방식<small>연주 기록: 친 건반·세기·페달을 그대로 저장하고, 「듣기」를 누르면 피아노가 똑같이 다시 연주해요. 소리 녹음: 소리 파일(.wav)을 만들어요</small></span><select id="recKindSel"><option value="perf">연주 기록</option><option value="audio">소리 녹음</option></select></label>
+        <div id="recAudioOpts" hidden>
+        <label class="opt"><span>녹음 입력<small>자동: USB·피아노 이름의 입력을 먼저 고릅니다</small></span><select id="recDevSel"><option value="auto">자동</option></select></label>
+        <label class="opt"><span>소리 받는 방식<small>원음: 소리를 손대지 않고 받아요. 통화 방식: 태블릿 마이크를 골라 쓸 때 필요해요. 「입력 점검」이 알아서 골라 줍니다</small></span><select id="recModeSel"><option value="raw">원음</option><option value="comm">통화 방식</option></select></label>
         <div class="row"><button type="button" id="recTestBtn">입력 점검</button><small style="color:var(--muted)">피아노를 연결한 채 누르면 피아노가 도·미·솔을 몇 번 울리고, 소리가 실제로 들어오는 입력을 찾아 골라요(약 20초)</small></div>
         <pre class="help" id="recTestOut" hidden></pre>
-        <p class="help" id="recInfo">위의 「녹음」 버튼으로 시작하고 다시 누르면 멈춰요. 녹음은 이 기기에만 저장됩니다. 피아노가 USB로 연결돼 있으면 「듣기」 소리는 태블릿이 아니라 피아노(스피커·헤드폰)에서 나요.</p>
+        </div>
+        <p class="help" id="recInfo">위의 「녹음」 버튼으로 시작하고 다시 누르면 멈춰요. 녹음은 이 기기에만 저장됩니다. 연주 기록의 「듣기」는 피아노가 연결돼 있으면 피아노가 직접 다시 연주하고(스피커·헤드폰), 아니면 앱 음원으로 들려줘요. 「파일」은 연주 기록을 .mid로 내보내요.</p>
         <div id="recList"></div>
         <div class="row"><small id="recStore" style="color:var(--muted)"></small></div>
       </section>
@@ -1156,9 +1159,9 @@ function moveBar(d){   // first step of the next (d>0) or previous (d<0) bar tha
   svg.addEventListener('pointerdown', e=>{
     const r=e.target.closest('.key'); if(!r) return;
     e.preventDefault(); svg.setPointerCapture(e.pointerId);
-    const m=+r.dataset.midi; active.set(e.pointerId,m); noteOn(m);
+    const m=+r.dataset.midi; active.set(e.pointerId,m); if(perf) perfCapture(0x90, m, 80); noteOn(m);
   });
-  const up=e=>{ const m=active.get(e.pointerId); if(m!==undefined){ noteOff(m); active.delete(e.pointerId);} };
+  const up=e=>{ const m=active.get(e.pointerId); if(m!==undefined){ if(perf) perfCapture(0x80, m, 0); noteOff(m); active.delete(e.pointerId);} };
   svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
 })();
 /* long-press marks on top keyboard */
@@ -1245,6 +1248,7 @@ function bindInputs(){
 function pianoOut(){ return (soundMode==='piano' || (soundMode==='auto' && midiOut)) ? midiOut : null; }
 function onMidi(ev){
   const [st,d1,d2]=ev.data; const cmd=st&0xf0;
+  if(perf) perfCapture(cmd, d1, d2, ev.timeStamp);   // v80: the performance recorder takes the raw message (velocity, pedal depth)
   if(cmd===0x90 && d2>0) noteOn(d1);
   else if(cmd===0x80 || (cmd===0x90 && d2===0)) noteOff(d1);
   else if(cmd===0xB0 && d1===64){ pedalDown = d2>=64; $('pedalLive').classList.toggle('on', pedalDown); }
@@ -1338,8 +1342,13 @@ let recDevice = 'auto';
    ('comm') Chrome switches to communication mode and routes to the chosen communication device (USB audio). Neither
    is right everywhere, so both are offered and the input check below measures which one really carries sound. */
 let recMode = 'raw';
-try{ const rp=JSON.parse(localStorage.getItem('kg.rec')||'{}'); recDevice = rp.device || 'auto'; recMode = rp.mode==='comm' ? 'comm' : 'raw'; }catch(e){}
-function saveRecPref(){ try{ localStorage.setItem('kg.rec', JSON.stringify({device:recDevice, mode:recMode})); }catch(e){} }
+/* v80: what the record button takes. 'perf' (default) = the performance itself as MIDI — keys, velocities, pedal,
+   timing — replayed by the piano; 'audio' = the sound as a WAV (v62/v79). On the family tablet (Galaxy Tab S7+) the
+   P-225's USB audio never arrives (every route to it reads digital silence, and Samsung's own recorder fails with the
+   piano attached), so the performance record is what works there. */
+let recKind = 'perf';
+try{ const rp=JSON.parse(localStorage.getItem('kg.rec')||'{}'); recDevice = rp.device || 'auto'; recMode = rp.mode==='comm' ? 'comm' : 'raw'; recKind = rp.kind==='audio' ? 'audio' : 'perf'; }catch(e){}
+function saveRecPref(){ try{ localStorage.setItem('kg.rec', JSON.stringify({device:recDevice, mode:recMode, kind:recKind})); }catch(e){} }
 function recConstraints(mode, dev){
   const c={echoCancellation: mode==='comm', noiseSuppression:false, autoGainControl:false, channelCount:{ideal:2}, sampleRate:{ideal:44100}};
   if(dev) c.deviceId={exact:dev.deviceId};
@@ -1385,6 +1394,9 @@ async function fillRecDevices(){
 $('recDevSel').addEventListener('change', ()=>{ recDevice=$('recDevSel').value; saveRecPref(); });
 $('recModeSel').value=recMode;
 $('recModeSel').addEventListener('change', ()=>{ recMode=$('recModeSel').value==='comm'?'comm':'raw'; saveRecPref(); });
+function showRecKind(){ $('recKindSel').value=recKind; $('recAudioOpts').hidden = recKind!=='audio'; }
+$('recKindSel').addEventListener('change', ()=>{ recKind=$('recKindSel').value==='audio'?'audio':'perf'; saveRecPref(); showRecKind(); });
+showRecKind();
 /* ---------- input check (v79) ----------
    Which input really carries the piano? Every capture mode x listed input is opened in turn for about two seconds:
    first the level with nothing sounding (floor), then the level while a C major chord sounds — sent to the piano over
@@ -1556,7 +1568,119 @@ async function stopRec(note){
   catch(e){ console.warn(e); setMsg('녹음을 저장하지 못했어요: '+(e.message||e),'bad'); }
   refreshRecList();
 }
-$('recPill').addEventListener('click', ()=>{ if(rec) stopRec(); else startRec(); });
+$('recPill').addEventListener('click', ()=>{ if(perf) stopPerf(); else if(rec) stopRec(); else if(recKind==='perf') startPerf(); else startRec(); });
+/* ---------- performance record (v80) ----------
+   The playing itself instead of its sound: every key (with its velocity), every pedal movement and when it happened,
+   as received over MIDI (or from the on-screen keyboard). Replay sends the same messages back to the piano, which
+   then plays the take again with its own sound — through speakers or headphones, no microphone, no room noise;
+   without a piano the app's sampled grand plays it. Export is a standard MIDI file (format 0, 480 ticks per quarter
+   at 120 bpm, i.e. 0.96 ticks per millisecond). Stored in the same IndexedDB list as the sound recordings. */
+const PERF_MAX = 30*60*1000;
+let perf = null;      // {t0, ev:[[ms, cmd, d1, d2]...], notes, pedal, down:Set, cc:{}, timer, ok0, bad0, songTitle, bars}
+let replay = null;    // {id, out, btn, ev, qi, vi, lit:Set, t0, timer, notes?, ni?, t0a?}
+function perfCapture(cmd, d1, d2, ts){
+  if(!perf) return;
+  const t = Math.max(0, ((ts && ts>0) ? ts : performance.now()) - perf.t0);
+  if(cmd===0x90 && d2>0){ perf.ev.push([t,0x90,d1,d2]); perf.notes++; perf.down.add(d1); }
+  else if(cmd===0x80 || (cmd===0x90 && d2===0)){ if(perf.down.has(d1)){ perf.ev.push([t,0x80,d1,0]); perf.down.delete(d1); } }   // a key already down at the start is not part of the take
+  else if(cmd===0xB0 && (d1===64 || d1===66 || d1===67)){
+    if(d1===64 && d2>=64 && (perf.cc[64]||0)<64) perf.pedal++;
+    perf.cc[d1]=d2; perf.ev.push([t,0xB0,d1,d2]);
+  }
+}
+function startPerf(){
+  if(rec || perf) return;
+  if(replay) stopReplay();
+  perf={t0:performance.now(), ev:[], notes:0, pedal:0, down:new Set(), cc:{}, ok0:stats.ok, bad0:stats.bad,
+        songTitle: song ? song.title : '', bars: song ? ($('barFrom').value+'–'+$('barTo').value) : ''};
+  if(pedalDown){ perf.ev.push([0,0xB0,64,127]); perf.cc[64]=127; perf.pedal=1; }
+  const pill=$('recPill'); pill.classList.add('on'); pill.setAttribute('aria-pressed','true'); $('recText').textContent='0:00';
+  perf.timer=setInterval(()=>{ if(!perf) return; const ms=performance.now()-perf.t0; $('recText').textContent=recTime(ms/1000);
+    if(ms>=PERF_MAX) stopPerf('30분이 되어 연주 기록을 저장했어요'); }, 250);
+  const connected = !!(midiAccess && midiAccess.inputs && midiAccess.inputs.size);
+  setMsg(connected ? '연주 기록 시작 — 치는 건반·세기·페달을 그대로 저장해요. 「녹음」을 다시 누르면 끝나요'
+                   : '연주 기록 시작 — 피아노가 연결돼 있지 않아 아래 건반으로 누른 음만 기록돼요', connected?'ok':'');
+}
+async function stopPerf(note){
+  if(!perf) return;
+  const r=perf; perf=null; clearInterval(r.timer);
+  const pill=$('recPill'); pill.classList.remove('on'); pill.setAttribute('aria-pressed','false'); $('recText').textContent='녹음';
+  if(!r.notes){ setMsg('친 음이 없어 연주 기록을 저장하지 않았어요.' + ((midiAccess && midiAccess.inputs && midiAccess.inputs.size) ? '' : ' 「피아노 연결」을 먼저 눌러 주세요.'),'bad'); return; }
+  r.ev.sort((a,b)=>a[0]-b[0]);
+  const end=Math.max(performance.now()-r.t0, r.ev[r.ev.length-1][0]);
+  for(const m of r.down) r.ev.push([end,0x80,m,0]);                              // what is still held ends with the take
+  for(const c of [64,66,67]) if((r.cc[c]||0)>0) r.ev.push([end,0xB0,c,0]);
+  const first=r.ev.find(e=>e[1]===0x90)[0], shift=Math.max(0, first-400);        // the take starts just before the first note
+  const ev=r.ev.map(e=>[Math.round(Math.max(0,e[0]-shift)*10)/10, e[1], e[2], e[3]]);
+  const dur=ev[ev.length-1][0]/1000;
+  const item={kind:'perf', ts:Date.now(), song:r.songTitle, bars:r.bars, dur, notes:r.notes, pedal:r.pedal, ok:stats.ok-r.ok0, bad:stats.bad-r.bad0, player, size:JSON.stringify(ev).length, ev};
+  try{ await recDb('put', item); setMsg((note||'연주 기록을 저장했어요')+` · ${recTime(dur)} · 음 ${r.notes}개 — 설정 › 녹음에서 「듣기」를 누르면 ${midiOut?'피아노가 다시 연주해요':'들을 수 있어요'}`,'ok'); toast('연주 기록 저장 '+recTime(dur)); }
+  catch(e){ console.warn(e); setMsg('연주 기록을 저장하지 못했어요: '+(e.message||e),'bad'); }
+  refreshRecList();
+}
+/* sounding notes of a take, for the app's own sound: key down to key up, or on to the pedal release when the
+   sustain pedal is holding the note */
+function perfNotes(ev){
+  const out=[], on={}, sus=[]; let ped=false;
+  for(const [t,c,a,b] of ev){
+    if(c===0x90){ const n={t, m:a, v:b, d:null}; out.push(n); on[a]=n; }
+    else if(c===0x80){ const n=on[a]; if(n){ if(ped) sus.push(n); else n.d=t-n.t; delete on[a]; } }
+    else if(c===0xB0 && a===64){ const down=b>=64; if(ped && !down){ for(const n of sus) if(n.d===null) n.d=t-n.t; sus.length=0; } ped=down; }
+  }
+  const end=ev.length ? ev[ev.length-1][0] : 0;
+  for(const n of out) if(n.d===null) n.d=Math.max(80, end-n.t);
+  return out;
+}
+function startReplay(it, btn){
+  if(rec || perf){ toast('녹음 중에는 들을 수 없어요'); return; }
+  stopReplay(); if(playing) stopPlay();
+  ensureAudio();
+  const out=pianoOut(), ev=it.ev, total=it.dur*1000;
+  const r={id:it.id, out, btn, ev, qi:0, vi:0, lit:new Set(), t0:performance.now()+250, timer:null};
+  if(out){ try{ for(const c of [64,66,67]) out.send([0xB0,c,0], r.t0-80); }catch(e){} }
+  else { r.notes=perfNotes(ev); r.ni=0; r.t0a=actx.currentTime+0.25; }
+  replay=r;
+  const tick=()=>{
+    if(replay!==r) return;
+    const pos=performance.now()-r.t0;
+    if(out){   // a short look-ahead only: Stop cannot take messages back from the port (v57)
+      while(r.qi<ev.length && ev[r.qi][0]<=pos+MIDI_AHEAD*1000){ const e=ev[r.qi++]; try{ out.send([e[1],e[2],e[3]], r.t0+e[0]); }catch(x){} }
+    } else {
+      while(r.ni<r.notes.length && r.notes[r.ni].t<=pos+1500){ const n=r.notes[r.ni++]; beep(n.m, r.t0a+n.t/1000, Math.max(0.1,n.d/1000), 0.05+0.2*Math.pow(n.v/127,1.4), true); }
+    }
+    while(r.vi<ev.length && ev[r.vi][0]<=pos){   // the lower keyboard follows the take
+      const e=ev[r.vi++];
+      if(e[1]===0x90){ r.lit.add(e[2]); paint(botKeys,e[2],'var(--rh)'); }
+      else if(e[1]===0x80){ r.lit.delete(e[2]); if(!held.has(e[2])) paint(botKeys,e[2],null); }
+    }
+    if(btn.isConnected) btn.textContent='■ 멈춤 '+recTime(Math.max(0,pos)/1000)+' / '+recTime(it.dur);
+    if(pos>total+500) stopReplay();
+  };
+  r.timer=setInterval(tick, 40); tick();
+  setMsg(out ? '연주 기록을 피아노가 다시 연주해요' : '연주 기록을 앱 음원으로 들려줘요', 'ok');
+}
+function stopReplay(){
+  const r=replay; if(!r) return;
+  replay=null; clearInterval(r.timer);
+  for(const m of r.lit) if(!held.has(m)) paint(botKeys,m,null);
+  if(r.out){ try{ midiSilence(r.out); }catch(e){} }
+  else if(actx){ const now=actx.currentTime; for(const {o,g} of scheduled){ try{ g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(0,now); o.stop(now+0.01); }catch(e){} } scheduled=[]; }
+  if(r.btn && r.btn.isConnected) r.btn.textContent='듣기';
+}
+function exportMid(it){
+  const vlq=n=>{ const b=[n&0x7f]; while((n>>>=7)>0) b.unshift((n&0x7f)|0x80); return b; };
+  const name=new TextEncoder().encode((it.song||'건반 길잡이')+' — 연주 기록');
+  const tr=[0,0xFF,0x51,0x03,0x07,0xA1,0x20, 0,0xFF,0x03,...vlq(name.length),...name];   // 120 bpm; track name
+  let last=0;
+  for(const e of it.ev){ const tick=Math.max(last, Math.round(e[0]*0.96)); tr.push(...vlq(tick-last), e[1], e[2]&0x7f, e[3]&0x7f); last=tick; }
+  tr.push(0,0xFF,0x2F,0x00);
+  const n=tr.length, head=[0x4D,0x54,0x68,0x64, 0,0,0,6, 0,0, 0,1, 0x01,0xE0, 0x4D,0x54,0x72,0x6B, (n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
+  const bytes=new Uint8Array(head.length+n); bytes.set(head,0); bytes.set(tr,head.length);
+  const d=new Date(it.ts), url=URL.createObjectURL(new Blob([bytes],{type:'audio/midi'}));
+  const a=document.createElement('a'); a.href=url;
+  a.download=`건반길잡이_${(it.song||'연주').replace(/[\\/:*?"<>|]/g,'')}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.mid`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 5000); toast('.mid 파일로 내보냈어요');
+}
 /* IndexedDB: one store of {id, ts, song, bars, dur, rate, ch, size, ok, bad, input, blob} */
 function recDb(op, arg){
   return new Promise((resolve,reject)=>{
@@ -1580,6 +1704,7 @@ async function wavPeakDb(blob){
   return dbOf(pk/32768);
 }
 async function refreshRecList(){
+  if(replay) stopReplay();
   const box=$('recList'); for(const u of recUrls) URL.revokeObjectURL(u); recUrls=[];
   let items=[]; try{ items=await recDb('all'); }catch(e){ box.innerHTML='<p class="rec-empty">이 브라우저에서는 녹음 저장소를 열 수 없어요.</p>'; return; }
   items.sort((a,b)=>b.ts-a.ts);
@@ -1587,6 +1712,8 @@ async function refreshRecList(){
   else box.innerHTML=items.map(it=>{
     const d=new Date(it.ts); const when=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     const judged = (it.ok+it.bad) ? ` · 맞음 ${it.ok} 틀림 ${it.bad}` : '';
+    if(it.kind==='perf') return `<div class="rec-item" data-id="${it.id}"><div class="meta">${(it.song||'연주').replace(/</g,'&lt;')} <span style="color:var(--muted)">${it.bars?'마디 '+it.bars:''}</span><small>${when} · ${recTime(it.dur)} · 연주 기록 · 음 ${it.notes}개${it.pedal?' · 페달 '+it.pedal+'번':''}${judged}</small></div>
+      <div class="acts"><button type="button" data-act="play">듣기</button><button type="button" data-act="save">파일</button><button type="button" data-act="del">삭제</button></div></div>`;
     return `<div class="rec-item" data-id="${it.id}"><div class="meta">${(it.song||'녹음').replace(/</g,'&lt;')} <span style="color:var(--muted)">${it.bars?'마디 '+it.bars:''}</span><small>${when} · ${recTime(it.dur)} · ${fmtBytes(it.size)} · ${it.input||''}${it.mode?' · '+REC_MODE_KO[it.mode]:''} ${it.rate/1000}kHz ${it.ch}ch${judged}<span class="lv">${it.peak===undefined?'':' · '+lvTag(it.peak)}</span></small></div>
       <div class="acts"><button type="button" data-act="play">듣기</button><button type="button" data-act="save">파일</button><button type="button" data-act="del">삭제</button></div></div>`;
   }).join('');
@@ -1599,10 +1726,12 @@ $('recList').addEventListener('click', async e=>{
   const row=b.closest('.rec-item'); const id=+row.dataset.id; const act=b.dataset.act;
   if(act==='del'){
     if(b.dataset.arm!=='1'){ b.dataset.arm='1'; b.textContent='정말 삭제'; setTimeout(()=>{ b.dataset.arm=''; b.textContent='삭제'; },3000); return; }
+    if(replay && replay.id===id) stopReplay();
     try{ await recDb('del', id); toast('삭제했어요'); }catch(x){} refreshRecList(); return;
   }
   let it; try{ it=await recDb('get', id); }catch(x){ return; }
   if(!it) return;
+  if(it.kind==='perf'){ if(act==='save') exportMid(it); else if(replay && replay.id===id) stopReplay(); else startReplay(it, b); return; }
   if(it.peak===undefined){   // an older recording: measure it now, so a silent file is named as such instead of just playing nothing
     try{ it.peak=await wavPeakDb(it.blob); await recDb('put', it); const lv=row.querySelector('.lv'); if(lv) lv.innerHTML=' · '+lvTag(it.peak); }catch(x){ console.warn(x); }
   }
@@ -1796,6 +1925,7 @@ function stopPlay(){
 let pendingPlay=false;
 $('playBtn').addEventListener('click', async ()=>{
   if(playing){ stopPlay(); return; }
+  if(replay){ stopReplay(); setMsg('연주 기록 재생을 멈췄어요',''); return; }   // v80: ▶ 전체 also stops a take that is being replayed
   if(!song || !steps.length || pendingPlay) return; ensureAudio();
   if(!samplesDone && !pianoOut()){ pendingPlay=true; try{ await samplesReady; } finally{ pendingPlay=false; } if(playing) return; }
   const start = Math.min(idx, steps.length-1);
