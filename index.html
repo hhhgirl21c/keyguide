@@ -1054,6 +1054,9 @@ function showSummary(){
   refreshScoreFig();
   resetPass();
 }
+const PARTIAL_MS=300;
+let partialTimer=null;
+function clearPartial(){ if(partialTimer){ clearTimeout(partialTimer); partialTimer=null; } }
 function noteOn(m){
   held.add(m); paint(botKeys,m,'var(--ok)');
   if(summaryOpen()) return;   // v69: the score card waits for 확인; playing on does not start the next pass
@@ -1070,7 +1073,20 @@ function noteOn(m){
       passTimes.push({i:idx, t:now, miss:stepMiss}); stepMiss=false;   // v63: when this step was completed, for the pass score
       advance(1); return;
     }
-    setMsg(`${nameOf(m,true)} 맞음 — 나머지 ${cur.all.filter(x=>!pressedSince.has(x)).map(x=>nameOf(x,true)).join(', ')}`, 'ok');
+    // v81: part of the step is down. The notes of one step never land in the same instant (the two hands are tens of
+    // milliseconds apart), so saying "X 맞음 — 나머지 Y" and paling the chip at once made the message row and the
+    // chips blink on every step played correctly. The hint now waits: it only shows when the rest is still missing
+    // after PARTIAL_MS, i.e. when the player really is holding one part and looking for the other.
+    clearPartial();
+    const at=idx;
+    partialTimer=setTimeout(()=>{
+      partialTimer=null;
+      const c=steps[idx]; if(idx!==at || !c || !pressedSince.size) return;
+      const rest=c.all.filter(x=>!pressedSince.has(x)); if(!rest.length) return;
+      setMsg(`${c.all.filter(x=>pressedSince.has(x)).map(x=>nameOf(x,true)).join(', ')} 맞음 — 나머지 ${rest.map(x=>nameOf(x,true)).join(', ')}`, 'ok');
+      render();
+    }, PARTIAL_MS);
+    return;
   } else {
     stats.bad++; pass.bad++; paint(botKeys,m,'var(--bad)');
     const st=$('stage'); st.classList.remove('miss'); void st.offsetWidth; st.classList.add('miss'); setTimeout(()=>st.classList.remove('miss'), 300);
@@ -1078,12 +1094,14 @@ function noteOn(m){
     // step only advances once both hands play it correctly together (even a key still held must be struck again)
     const both = cur.rh.length && cur.lh.length;
     setMsg(`${nameOf(m,true)} 아님 — ${both?'양손 모두 ':''}다시: ${cur.all.map(x=>nameOf(x,true)).join(', ')}`, 'bad');
+    clearPartial();
     pressedSince.clear(); handTimes={}; stepMiss=true; pass.miss[cur.bar]=(pass.miss[cur.bar]||0)+1;
   }
   render();
 }
 function noteOff(m){ held.delete(m); paint(botKeys,m,null); }
 function advance(d){
+  clearPartial();
   idx+=d; stepMiss=false;
   if(idx>=steps.length){
     if(pass.ok+pass.bad>0) showSummary();
@@ -1095,6 +1113,7 @@ function advance(d){
 
 /* ---------- score navigation (v56): swipe left/right = next/previous bar, tap a note = jump to it ---------- */
 function jumpTo(i){
+  clearPartial();
   if(playing) stopPlay();
   idx=Math.max(0, Math.min(steps.length-1, i));
   pressedSince.clear(); handTimes={}; stepMiss=false; hideSummary(); setMsg(''); render();
